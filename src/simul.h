@@ -70,6 +70,7 @@ class Simul {
 		long skip; //!< Iterations between two computation of observables
 		std::string output; //!< Name of the output file
 		double step_r; //!< Spatial resolution for correlations
+		int sleep; //!< Number of milliseconds to sleep for between iterations
 
 		double len; //!< Length of the box
 		SimulInitStatus status; //!< Status after initialization

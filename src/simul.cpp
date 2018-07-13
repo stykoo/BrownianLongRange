@@ -27,10 +27,12 @@ along with the program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <exception>
+#include <thread>
 #include <boost/program_options.hpp>
 // #include "observables.h"
 #include "simul.h"
-// #include "state.h"
+#include "state.h"
+#include "visu2d.h"
 
 namespace po = boost::program_options;
 
@@ -77,6 +79,8 @@ Simul::Simul(int argc, char **argv) {
 		("stepr,s",
 		 po::value<double>(&step_r)->default_value(0.2),
 		 "Spatial resolution for correlations")
+		("sleep", po::value<int>(&sleep)->default_value(0),
+		 "Number of milliseconds to sleep for between iterations")
 		("help,h", "Print help message and exit")
 		;
 
@@ -113,7 +117,6 @@ Simul::Simul(int argc, char **argv) {
 	len = std::sqrt(n_parts / rho);
 }
 
-
 /*!
  * \brief Run the simulation without inertia
  *
@@ -129,24 +132,32 @@ void Simul::runNoInertia() {
 	}
 
 	// Initialize the state of the system
-	/*State state(len, n_parts, pot_strength, temperature, rot_dif, activity,
-				dt, fac_boxes);
-	Observables obs(len, n_parts, step_r, n_div_angle, less_obs);*/
+	State state(len, n_parts, n_parts_1, charge1, charge2, pot_strength,
+	            temperature, dt, mass);
+	/*Observables obs(len, n_parts, step_r, n_div_angle, less_obs);*/
+
+	Visu visu(&state, len, n_parts, n_parts_1);
+	std::thread thVisu(&Visu::run, &visu); 
 
 	// Thermalization
 	for (long t = 0 ; t < n_iters_th ; ++t) {
-		//state.evolve();
+		state.evolveNoInertia();
 	}
 	// Time evolution
 	for (long t = 0 ; t < n_iters ; ++t) {
-		/*state.evolve();
-		if (t % skip == 0) {
+		state.evolveNoInertia();
+		/*if (t % skip == 0) {
 			obs.compute(&state);
 		}*/
+		if (sleep > 0) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
+		}
 	}
 
 	/*obs.writeH5(output, rho, n_parts, pot_strength, temperature, rot_dif,
 				activity, dt, n_iters, n_iters_th, skip);*/
+
+	thVisu.join();
 }
 
 /*!
