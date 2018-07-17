@@ -37,9 +37,8 @@ along with BrownianLongRange.  If not, see <http://www.gnu.org/licenses/>.
  * \param n_parts Number of particles
  * \param n_parts Number of particles of species 1
  */
-Visu::Visu(const State *state, const double len,
-           const long n_parts, const long n_parts_1) :
-	state(state), len(len), n_parts(n_parts), n_parts_1(n_parts_1) {
+Visu::Visu(const State *state, const long n_parts, const long n_parts_1) :
+	state(state), n_parts(n_parts), n_parts_1(n_parts_1) {
 }
 
 /*!
@@ -56,16 +55,12 @@ void Visu::run() {
     window.create(sf::VideoMode(windowSize, windowSize),
 	              "Brownian Particles with Coulomb interactions");
 
-	float scale = windowSize / len;
+	float scale = std::max(6.0, 0.3 * windowSize / std::sqrt(n_parts));
 	// We assume that the particles have diameter 1
     sf::CircleShape circle1(scale / 2.0);
     sf::CircleShape circle2(scale / 2.0);
-    circle1.setFillColor(sf::Color::Transparent);
-    circle2.setFillColor(sf::Color::Transparent);
-    circle1.setOutlineThickness(-3);
-    circle2.setOutlineThickness(-3);
-    circle1.setOutlineColor(sf::Color::Red);
-    circle2.setOutlineColor(sf::Color::Blue);
+    circle1.setFillColor(sf::Color::Red);
+    circle2.setFillColor(sf::Color::Blue);
 
     window.setFramerateLimit(FPS);
 
@@ -81,10 +76,8 @@ void Visu::run() {
         window.clear(sf::Color::White);
 
 		for (long i = 0 ; i < n_parts ; ++i) {
-			float x = pos[i] * scale; 
-			pbc(x, (float) windowSize);
-			float y = pos[n_parts + i] * scale; 
-			pbc(y, (float) windowSize);
+			float x = pos[i] * windowSize; 
+			float y = pos[n_parts + i] * windowSize; 
 
 			// Draw multiple times if on the boundary
 			int per_x = (x > windowSize - scale);

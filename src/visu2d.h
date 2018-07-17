@@ -35,7 +35,7 @@ along with BrownianLongRange.  If not, see <http://www.gnu.org/licenses/>.
 
 class Visu {
 	public:
-		Visu(const State *state, const double len, const long n_parts,
+		Visu(const State *state, const long n_parts,
 		     const long n_parts_1);
 		void run();
 
@@ -45,7 +45,6 @@ class Visu {
 		const int FPS = 24; //!< Number of frames per second
 
 		const State *state; //!< Pointer to the state of the system
-		const double len; //!< Length of the box
 		const long n_parts; //!< Number of particles
 		const long n_parts_1; //!< Number of particles of species 1
 };

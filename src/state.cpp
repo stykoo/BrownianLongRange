@@ -35,37 +35,43 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
  * \brief Constructor of State
  *
  * Initializes the state of the system: particles randomly placed in a 2d box.
- *
- * \param _len Length of the box
- * \param _n_parts Number of particles
- * \param _pot_strength Strength of the interparticle potential
- * \param _temperature Temperature
- * \param _rot_dif Rotational diffusivity
- * \param _activity Activity
- * \param _dt Timestep
- * \param _fac_boxes Factor for the boxes
  */
-State::State(const double _len, const long _n_parts, const long _n_parts_1,
+State::State(const long _n_parts, const long _n_parts_1,
 	         const double _charge1, const double _charge2,
 	         const double _pot_strength, const double _temperature,
 	         const double _dt, const double _mass) :
-	len(_len), n_parts(_n_parts), n_parts_1(_n_parts_1),
-	charge1(_charge1), charge2(_charge2), pot_strength(_pot_strength),
+	n_parts(_n_parts), n_parts_1(_n_parts_1), pot_strength(_pot_strength),
 	dt(_dt), mass(_mass),
 	// We seed the RNG with the current time
 	rng(std::chrono::system_clock::now().time_since_epoch().count()),
 	// Gaussian noise from the temperature
 	noise(0.0, std::sqrt(2.0 * _temperature * dt))
 {
+    std::uniform_real_distribution<double> rndPos(0.0, 1.0);
+
 	positions.resize(DIM * n_parts);
-	forces.assign(DIM * n_parts, 0);
-
-    std::uniform_real_distribution<double> rndPos(0, len);
-
-	for (long i = 0 ; i < DIM * n_parts ; ++i) {
+	//for (long i = 0 ; i < DIM * n_parts ; ++i) {
+	for (long i = 0 ; i < 2 * n_parts ; ++i) {
 		positions[i] = rndPos(rng);
-		forces[i] = 0;
 	}
+	for (long i = 2 * n_parts ; i < DIM * n_parts ; ++i) {
+		positions[i] = 0;
+	}
+
+	charges.resize(n_parts);
+	for (long i = 0 ; i < n_parts_1 ; ++i) {
+		charges[i] = _charge1;
+	}
+	for (long i = n_parts_1 ; i < n_parts ; ++i) {
+		charges[i] = _charge2;
+	}
+
+	double bias = 1;
+	ew = new Ewald(n_parts, positions.data(), bias, charges.data());
+}
+
+State::~State() {
+	delete ew;
 }
 
 /*!
@@ -74,7 +80,9 @@ State::State(const double _len, const long _n_parts, const long _n_parts_1,
  * Evolve the system for one time step according to coupled Langevin equation.
  */
 void State::evolveNoInertia() {
-	//calcInternalForces();
+	// Compute internal forces
+	double pot;
+	double *forces = ew->fullforce(&pot);
 
 	for (long i = 0 ; i < DIM * n_parts ; ++i) {
 		// Internal forces + Gaussian noise
@@ -83,6 +91,10 @@ void State::evolveNoInertia() {
 
 	// Enforce PBC
 	for (long i = 0 ; i < DIM * n_parts ; ++i) {
-		pbc(positions[i], len);
+		positions[i] -= std::floor(positions[i]);
+	}
+
+	for (long i = 2 * n_parts ; i < DIM * n_parts ; ++i) {
+		positions[i] = 0;
 	}
 }

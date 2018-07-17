@@ -50,7 +50,6 @@ Simul::Simul(int argc, char **argv) {
 
 	po::options_description opts("Options");
 	opts.add_options()
-		("rho,r", po::value<double>(&rho)->required(), "Density")
 		("parts,n", po::value<long>(&n_parts)->required(),
 		 "Number of particles")
 		("parts1,m", po::value<long>(&n_parts_1)->required(),
@@ -104,7 +103,7 @@ Simul::Simul(int argc, char **argv) {
 	}
 
 	// Check if the values of the parameters are allowed
-	if (notStrPositive(rho, "rho") || notStrPositive(n_parts, "n_parts")
+	if (notStrPositive(n_parts, "n_parts")
 		|| notPositive(n_parts_1, "n_parts_1")
 		|| notPositive(pot_strength, "eps") || notPositive(temperature, "T")
 		|| notStrPositive(dt, "dt") || notPositive(n_iters, "n_iters")
@@ -113,8 +112,6 @@ Simul::Simul(int argc, char **argv) {
 		status = SIMUL_INIT_FAILED;
 		return;
 	}
-
-	len = std::sqrt(n_parts / rho);
 }
 
 /*!
@@ -132,11 +129,11 @@ void Simul::runNoInertia() {
 	}
 
 	// Initialize the state of the system
-	State state(len, n_parts, n_parts_1, charge1, charge2, pot_strength,
+	State state(n_parts, n_parts_1, charge1, charge2, pot_strength,
 	            temperature, dt, mass);
 	/*Observables obs(len, n_parts, step_r, n_div_angle, less_obs);*/
 
-	Visu visu(&state, len, n_parts, n_parts_1);
+	Visu visu(&state, n_parts, n_parts_1);
 	std::thread thVisu(&Visu::run, &visu); 
 
 	// Thermalization
@@ -169,7 +166,7 @@ void Simul::print() const {
 	} else {
 		std::cout << "# [WithoutInertia] ";
 	}
-	std::cout << "rho=" << rho << ", n_parts=" << n_parts
+	std::cout << "n_parts=" << n_parts
 	          << ", n_parts_1=" << n_parts_1 << ", charge1="
 			  << charge1 << ", charge2=" << charge2
 	          << ", pot_strength=" << pot_strength << ", temperature="

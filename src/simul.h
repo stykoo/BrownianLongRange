@@ -55,7 +55,6 @@ class Simul {
 		SimulInitStatus getStatus() const { return status; }
 
 	private:
-		double rho; //!< Density
 		long n_parts; //!< Number of particles
 		long n_parts_1; //!< Number of particles of species 1
 		double charge1; //!< Charge of species 1
@@ -72,7 +71,6 @@ class Simul {
 		double step_r; //!< Spatial resolution for correlations
 		int sleep; //!< Number of milliseconds to sleep for between iterations
 
-		double len; //!< Length of the box
 		SimulInitStatus status; //!< Status after initialization
 };
 
