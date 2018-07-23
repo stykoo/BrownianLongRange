@@ -44,9 +44,13 @@ class Observables {
 					 long skip, int inertia) const;
 
 	private:
+		size_t boxOfPair(const long i, const long j,
+				         const std::vector<double> & pos);
+
 		const long n_parts; //!< Number of particles 
 		const long n_parts_1; //!< Number of particles of species 1
 		const long n_div_x; //!< Number of divisions in x
+		const long n_div_r; //!< Number of divisions for radial coordinate
 		const long n_div_tot; //!< Total number of divisions
 
 		std::vector<long long> correls11; //!< Correlations

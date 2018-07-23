@@ -37,7 +37,10 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 Observables::Observables(const long n_parts_, const long n_parts_1_,
 			             const long n_div_x_) :
 		n_parts(n_parts_), n_parts_1(n_parts_1_),
-		n_div_x(n_div_x_), n_div_tot(n_div_x * n_div_x * n_div_x)
+		n_div_x(n_div_x_),
+		n_div_r((long) std::ceil(std::sqrt(0.5) * n_div_x)),
+		n_div_tot(n_div_x * n_div_r)
+		//n_div_tot(n_div_x * n_div_x * n_div_x)
 {
 	correls11.assign(n_div_tot, 0);
 	correls22.assign(n_div_tot, 0);
@@ -48,44 +51,39 @@ Observables::Observables(const long n_parts_, const long n_parts_1_,
  * \brief Compute the observables for a given state
  */
 void Observables::compute(const State *state) {
-	double dr[3];
-	size_t b[3];
-	size_t box;
 	const std::vector<double> & pos = state->getPos();
 
 	// For each pair of particles
 	for (long i = 0 ; i < n_parts_1 ; ++i) {
 		for (long j = i + 1 ; j < n_parts_1 ; ++j) {
-			for (int a = 0 ; a < 3 ; ++a) {
-				dr[a] = pos[a * n_parts + j] - pos[a * n_parts + i];
-				dr[a] -= std::floor(dr[a]);
-				b[a] = (size_t) (dr[a] * n_div_x);
-			}
-			box = b[0] * n_div_x * n_div_x + b[1] * n_div_x + b[2];	
-			correls11[box]++; // Add 1 in the right box
+			correls11[boxOfPair(i, j, pos)]++; // Add 1 in the right box
 		}
 		for (long j = n_parts_1 ; j < n_parts ; ++j) {
-			for (int a = 0 ; a < 3 ; ++a) {
-				dr[a] = pos[a * n_parts + j] - pos[a * n_parts + i];
-				dr[a] -= std::floor(dr[a]);
-				b[a] = (size_t) (dr[a] * n_div_x);
-			}
-			box = b[0] * n_div_x * n_div_x + b[1] * n_div_x + b[2];	
-			correls12[box]++; // Add 1 in the right box
+			correls12[boxOfPair(i, j, pos)]++; // Add 1 in the right box
 		}
 	}
 
 	for (long i = n_parts_1 ; i < n_parts ; ++i) {
 		for (long j = i + 1 ; j < n_parts ; ++j) {
-			for (int a = 0 ; a < 3 ; ++a) {
-				dr[a] = pos[a * n_parts + j] - pos[a * n_parts + i];
-				dr[a] -= std::floor(dr[a]);
-				b[a] = (size_t) (dr[a] * n_div_x);
-			}
-			box = b[0] * n_div_x * n_div_x + b[1] * n_div_x + b[2];	
-			correls22[box]++; // Add 1 in the right box
+			correls22[boxOfPair(i, j, pos)]++; // Add 1 in the right box
 		}
 	}
+}
+
+size_t Observables::boxOfPair(const long i, const long j,
+		                      const std::vector<double> & pos) {
+	//size_t b[3];
+	double dr[3];
+	for (int a = 0 ; a < 3 ; ++a) {
+		dr[a] = pos[a * n_parts + j] - pos[a * n_parts + i];
+		dr[a] -= std::round(dr[a]);
+		//dr[a] -= std::floor(dr[a]);
+		//b[a] = (size_t) (dr[a] * n_div_x);
+	}
+	size_t bx = (size_t) (n_div_x * (dr[0] + 0.5));
+	size_t br = (size_t) (n_div_x * std::sqrt(dr[1]*dr[1] + dr[2]*dr[2]));
+	return bx * n_div_r + br;
+	//return b[0] * n_div_x * n_div_x + b[1] * n_div_x + b[2];	
 }
 
 /*
@@ -146,14 +144,20 @@ void Observables::writeH5(const std::string fname, double charge1,
 		H5::DataSet dataset11, dataset22, dataset12;
 		H5::DSetCreatPropList plist;
 		plist.setDeflate(6);
-		long chunk_w = std::min(100l, n_div_x);
+		/*long chunk_w = std::min(100l, n_div_x);
 		hsize_t chunk_dims[3] = {1, (hsize_t) chunk_w, (hsize_t) chunk_w};
-		plist.setChunk(3, chunk_dims);
+		plist.setChunk(3, chunk_dims);*/
+		long chunk_w = std::min(1024l, n_div_r);
+		hsize_t chunk_dims[2] = {1, (hsize_t) chunk_w};
+		plist.setChunk(2, chunk_dims);
 
 		// Dimensions of the data
-		hsize_t dims[3] = {(hsize_t) n_div_x, (hsize_t) n_div_x,
+		/*hsize_t dims[3] = {(hsize_t) n_div_x, (hsize_t) n_div_x,
 			               (hsize_t) n_div_x};
-		H5::DataSpace dataspace(3, dims);
+		H5::DataSpace dataspace(3, dims);*/
+		hsize_t dims[3] = {(hsize_t) n_div_x, (hsize_t) n_div_r};
+		H5::DataSpace dataspace(2, dims);
+
 		// Write datasets for correlations
 		dataset11 = file.createDataSet("correlations11",
 				   					   H5::PredType::NATIVE_LLONG,
