@@ -31,6 +31,8 @@ along with BrownianLongRange.  If not, see <http://www.gnu.org/licenses/>.
 #include <string>
 #include <iostream>
 
+#define VISU
+
 //! State of the simulation after initialization
 enum SimulInitStatus {
 	SIMUL_INIT_SUCCESS, //!< Successful initialization
@@ -47,8 +49,7 @@ enum SimulInitStatus {
 class Simul {
 	public:
 		Simul(int argc, char **argv); //!< Constructor from arguments
-		void runNoInertia(); //!< Run the simulation without inertia
-		void runInertia(); //!< Run the simulation with inertia
+		void run(); //!< Run the simulation
 		void print() const; //!< Print the parameters
 
 		//! Get initialization status

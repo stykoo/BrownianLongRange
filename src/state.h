@@ -36,6 +36,7 @@ along with BrownianLongRange.  If not, see <http://www.gnu.org/licenses/>.
 
 // 3d system
 #define DIM 3
+#define RESTRICT_2D
 
 /*!
  * \brief Class for the state of the system
@@ -51,8 +52,8 @@ class State {
 		      const double _pot_strength, const double _temperature,
 			  const double _dt, const double _mass, const double _bias);
 		~State();
-		void evolveInertia(); //!< Do one time step with inertia
 		void evolveNoInertia(); //!< Do one time step without inertia
+		void evolveInertia(); //!< Do one time step with inertia
 
 		//! Get the positions 
 		const std::vector<double> & getPos() const {
@@ -71,6 +72,7 @@ class State {
 		gsl_rng *rng;
 
 		std::vector<double> positions; //!< Positions of the particles
+		std::vector<double> velocities; //!< Velocities of the particles
 		std::vector<double> charges; //!< Charges of the particles
 		Ewald *ew; //!< To perform Ewald summation
 };

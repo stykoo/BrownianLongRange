@@ -49,13 +49,20 @@ State::State(const long _n_parts, const long _n_parts_1,
 	gsl_rng_set(rng, sd);
 
 	positions.resize(DIM * n_parts);
-	for (long i = 0 ; i < DIM * n_parts ; ++i) {
-	//for (long i = 0 ; i < 2 * n_parts ; ++i) {
+#ifdef RESTRICT_2D
+	for (long i = 0 ; i < 2 * n_parts ; ++i) {
 		positions[i] = gsl_ran_flat(rng, 0.0, 1.0);
 	}
-	/*for (long i = 2 * n_parts ; i < DIM * n_parts ; ++i) {
+	for (long i = 2 * n_parts ; i < DIM * n_parts ; ++i) {
 		positions[i] = 0;
-	}*/
+	}
+#else
+	for (long i = 0 ; i < DIM * n_parts ; ++i) {
+		positions[i] = gsl_ran_flat(rng, 0.0, 1.0);
+	}
+#endif
+
+	velocities.assign(DIM * n_parts, 0.0);
 
 	charges.resize(n_parts);
 	for (long i = 0 ; i < n_parts_1 ; ++i) {
@@ -66,6 +73,9 @@ State::State(const long _n_parts, const long _n_parts_1,
 	}
 
 	ew = new Ewald(n_parts, positions.data(), _bias, charges.data());
+	// Initialize the forces (needed for inertial dynamics)
+	double pot;
+	ew->fullforce(&pot);
 }
 
 State::~State() {
@@ -76,25 +86,75 @@ State::~State() {
 /*!
  * \brief Do one time step
  *
- * Evolve the system for one time step according to coupled Langevin equation.
+ * Evolve the system for one time step according to coupled
+ * overdamped Langevin equation.
  */
 void State::evolveNoInertia() {
 	// Compute internal forces
 	double pot;
 	double *forces = ew->fullforce(&pot);
 
-	for (long i = 0 ; i < DIM * n_parts ; ++i) {
-		// Internal forces + Gaussian noise
+#ifdef RESTRICT_2D
+	long hi = 2 * n_parts;
+#else
+	long hi = DIM * n_parts;
+#endif
+
+	for (long i = 0 ; i < hi ; ++i) {
+		// Internal forces + External force + Gaussian noise
 		positions[i] += dt * forces[i];
 		positions[i] += gsl_ran_gaussian_ziggurat(rng, sigma);
-	}
-
-	// Enforce PBC
-	for (long i = 0 ; i < DIM * n_parts ; ++i) {
+		// Enforce PBC
 		positions[i] -= std::floor(positions[i]);
 	}
+}
 
-	/*for (long i = 2 * n_parts ; i < DIM * n_parts ; ++i) {
-		positions[i] = 0;
-	}*/
+/*!
+ * \brief Do one time step
+ *
+ * Evolve the system for one time step according to coupled Langevin equation
+ * with intertia.
+ *
+ * See doi/10.1080/00268976.2012.760055 for algorithm (Eq. 21-22)
+ */
+void State::evolveInertia() {
+	double b = 1.0 / (1.0 + dt / (2.0 * mass));
+	double a = b * (1.0 - dt / (2.0 * mass));
+	double c_rv = b * dt;
+	double c_rf = b * dt * dt / (2.0 * mass);
+	double c_rn = b * dt / (2.0 * mass);
+	double c_vf = dt / (2.0 * mass);
+	double c_vn = b / mass;
+
+#ifdef RESTRICT_2D
+	long hi = 2 * n_parts;
+#else
+	long hi = DIM * n_parts;
+#endif
+
+	double *forces = ew->getForce();
+
+	for (long i = 0 ; i < hi ; ++i) {
+		double u = gsl_ran_gaussian_ziggurat(rng, sigma);
+
+		// Update positions
+		positions[i] += c_rv * velocities[i];
+		positions[i] += c_rf * forces[i];
+		positions[i] += c_rn * u;
+		positions[i] -= std::floor(positions[i]); // PBC
+
+		// Update velocities (old forces)
+		velocities[i] *= a;
+		velocities[i] += c_vf * a * forces[i];
+		velocities[i] += c_vn * u;
+	}
+
+	// New forces
+	double pot;
+	forces = ew->fullforce(&pot);
+
+	for (long i = 0 ; i < hi ; ++i) {
+		// Update velocities (new forces)
+		velocities[i] += c_vf * forces[i];
+	}
 }

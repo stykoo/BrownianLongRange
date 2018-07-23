@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
 	}
 
 	simulation.print();
-	simulation.runNoInertia();
+	simulation.run();
 
 	return 0;
 }

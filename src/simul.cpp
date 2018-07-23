@@ -32,8 +32,13 @@ along with the program.  If not, see <http://www.gnu.org/licenses/>.
 // #include "observables.h"
 #include "simul.h"
 #include "state.h"
-//#include "visu2d.h"
+
+#ifdef VISU
+#ifdef RESTRICT_2D
+#include "visu2d.h"
+#endif
 //#include "visu3d.h"
+#endif
 
 namespace po = boost::program_options;
 
@@ -119,13 +124,13 @@ Simul::Simul(int argc, char **argv) {
 }
 
 /*!
- * \brief Run the simulation without inertia
+ * \brief Run the simulation
  *
  * Construct the state of the system and update it for the number
  * of iterations wanted. Also take care of launching the thread for
  * visualization.
  */
-void Simul::runNoInertia() {
+void Simul::run() {
 	if (status != SIMUL_INIT_SUCCESS) {
 		std::cerr << "You should not be runing a failed simulation..."
 		          << std::endl;
@@ -137,29 +142,54 @@ void Simul::runNoInertia() {
 	            temperature, dt, mass, bias);
 	/*Observables obs(len, n_parts, step_r, n_div_angle, less_obs);*/
 
-	//Visu visu(&state, n_parts, n_parts_1);
+#ifdef VISU
+#ifdef RESTRICT_2D
+	Visu visu(&state, n_parts, n_parts_1);
+	std::thread thVisu(&Visu::run, &visu); 
+#endif
 	//Visu3d visu(&state, n_parts, n_parts_1);
-	//std::thread thVisu(&Visu3d::run, &visu); 
+#endif
 
-	// Thermalization
-	for (long t = 0 ; t < n_iters_th ; ++t) {
-		state.evolveNoInertia();
-	}
-	// Time evolution
-	for (long t = 0 ; t < n_iters ; ++t) {
-		state.evolveNoInertia();
-		/*if (t % skip == 0) {
-			obs.compute(&state);
-		}*/
-		if (sleep > 0) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
+	if (inertia) {
+		// Thermalization
+		for (long t = 0 ; t < n_iters_th ; ++t) {
+			state.evolveInertia();
+		}
+		// Time evolution
+		for (long t = 0 ; t < n_iters ; ++t) {
+			state.evolveInertia();
+			/*if (t % skip == 0) {
+				obs.compute(&state);
+			}*/
+			if (sleep > 0) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
+			}
+		}
+	} else {
+		// Thermalization
+		for (long t = 0 ; t < n_iters_th ; ++t) {
+			state.evolveNoInertia();
+		}
+		// Time evolution
+		for (long t = 0 ; t < n_iters ; ++t) {
+			state.evolveNoInertia();
+			/*if (t % skip == 0) {
+				obs.compute(&state);
+			}*/
+			if (sleep > 0) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
+			}
 		}
 	}
 
 	/*obs.writeH5(output, rho, n_parts, pot_strength, temperature, rot_dif,
 				activity, dt, n_iters, n_iters_th, skip);*/
 
-	//thVisu.join();
+#ifdef VISU
+#ifdef RESTRICT_2D
+	thVisu.join();
+#endif
+#endif
 }
 
 /*!

@@ -22,7 +22,7 @@ class Ewald{
 		double* fullforce(double *);
 		//void samplefourier(int ns);
 		void dump();
-		double* getf() { return force; }
+		double* getForce() { return force; }
 
 	private:
 		void setup(double, double, double);
