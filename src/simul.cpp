@@ -32,7 +32,8 @@ along with the program.  If not, see <http://www.gnu.org/licenses/>.
 // #include "observables.h"
 #include "simul.h"
 #include "state.h"
-#include "visu2d.h"
+//#include "visu2d.h"
+//#include "visu3d.h"
 
 namespace po = boost::program_options;
 
@@ -70,6 +71,8 @@ Simul::Simul(int argc, char **argv) {
 		 "Simulation with inertia")
 		("mass,M", po::value<double>(&mass)->default_value(0.0),
 		 "Mass of the particles")
+		("bias", po::value<double>(&bias)->default_value(1.0),
+		 "Bias toward Fourier space")
 		("skip,S", po::value<long>(&skip)->default_value(100),
 		 "Iterations between two computations of observables")
 		("output,O",
@@ -108,7 +111,8 @@ Simul::Simul(int argc, char **argv) {
 		|| notPositive(pot_strength, "eps") || notPositive(temperature, "T")
 		|| notStrPositive(dt, "dt") || notPositive(n_iters, "n_iters")
 		|| notPositive(n_iters_th, "n_iters_th")
-		|| notPositive(mass, "mass") || notStrPositive(step_r, "step_r")) {
+		|| notPositive(mass, "mass") || notStrPositive(bias, "bias")
+		|| notStrPositive(step_r, "step_r")) {
 		status = SIMUL_INIT_FAILED;
 		return;
 	}
@@ -130,11 +134,12 @@ void Simul::runNoInertia() {
 
 	// Initialize the state of the system
 	State state(n_parts, n_parts_1, charge1, charge2, pot_strength,
-	            temperature, dt, mass);
+	            temperature, dt, mass, bias);
 	/*Observables obs(len, n_parts, step_r, n_div_angle, less_obs);*/
 
-	Visu visu(&state, n_parts, n_parts_1);
-	std::thread thVisu(&Visu::run, &visu); 
+	//Visu visu(&state, n_parts, n_parts_1);
+	//Visu3d visu(&state, n_parts, n_parts_1);
+	//std::thread thVisu(&Visu3d::run, &visu); 
 
 	// Thermalization
 	for (long t = 0 ; t < n_iters_th ; ++t) {
@@ -154,7 +159,7 @@ void Simul::runNoInertia() {
 	/*obs.writeH5(output, rho, n_parts, pot_strength, temperature, rot_dif,
 				activity, dt, n_iters, n_iters_th, skip);*/
 
-	thVisu.join();
+	//thVisu.join();
 }
 
 /*!
@@ -172,6 +177,6 @@ void Simul::print() const {
 	          << ", pot_strength=" << pot_strength << ", temperature="
 			  << temperature << ", dt=" << dt << ", n_iters=" << n_iters
 			  << ", n_iters_th=" << n_iters_th << ", mass=" << mass
-			  << ", skip=" << skip << "\n";
+			  << ", bias=" << bias << ", skip=" << skip << "\n";
 	std::cout << std::endl;
 }

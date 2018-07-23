@@ -19,6 +19,11 @@
 #include <cassert>
 #include "ewald.h"
 
+#ifdef USE_MKL
+	#include "mkl.h"
+	#include "mkl_vsl.h"
+#endif
+
 using namespace std;
 
 #define PRINT 0
@@ -40,7 +45,7 @@ Ewald::Ewald(int _N, double *_p, double bias, double *_Q) :
 	cout << "\e[1;33mreal space Range " << rRange << " fourier Frange "
 		<< fRange << " alpha " << alpha << "\e[0;03m" << endl;
 
-	lq=int(fRange + 0); //range in fourier space
+	lq = int(fRange + 0); //range in fourier space
 	dim = 2 * lq + 1;
 	dim3 = dim * dim * dim;
 	cout << "Dim " << dim << endl;
@@ -108,6 +113,20 @@ Ewald::Ewald(int _N, double *_p, double bias, double *_Q) :
 	}
 	vr0 *= -M_PI / alpha2;
 
+#ifdef USE_MKL
+	rs_hi = int(rRange + .5); // How many images in real space
+	rs_lo = -rs_hi;
+	rs_dim = rs_hi - rs_lo + 1;
+	rs_dim3 = rs_dim * rs_dim * rs_dim;
+	std::cout << "rs_dim3: " << rs_dim3 << std::endl;
+	norms2 = new double[N * rs_dim3];
+	norms = new double[N * rs_dim3];
+	efs = new double[N * rs_dim3];
+	cms = new double[N * rs_dim3];
+	rrs = new double[3 * N];
+	in_range = new bool[N * rs_dim3];
+#endif
+
 	if(PRINT){
 		cout << "Qx\n";
 		for(int i = 0 ; i < dim3 ; i++) {
@@ -135,6 +154,15 @@ Ewald::~Ewald() {
 	delete [] cx;
 	delete [] cy;
 	delete [] cz;
+
+#ifdef USE_MKL
+	delete [] norms2;
+	delete [] norms;
+	delete [] efs;
+	delete [] cms;
+	delete [] rrs;
+	delete [] in_range;
+#endif
 }
 
 double* Ewald::fullforce(double * Ftot) {
@@ -178,19 +206,24 @@ void Ewald::dump(){
 }
 
 void Ewald::realSpace() {
-	double f[3];
-	double vv;
-
 	for(int i = 0; i < 3 * N ; i++) {
-		fr[i]=0; //realspace force
+		fr[i] = 0; //realspace force
 	}
 
 	vr = vr0; // Zero body potential
 
+#ifdef USE_MKL
+	for(int i = 0 ; i < N ; i++) {
+		realSpaceAux2MKL(i);
+	}
+#else
+	double vv;
+	double f[3];
 	// Double particle loop
 	for(int i = 0 ; i < N ; i++) {
-		for(int j = 0; j < i ; j++) {
+		for(int j = 0 ; j < i ; j++) {
 			  realSpaceAux(i, j, &vv, f);
+
 			  vr += vv;
 			  
 			  fr[i] += f[0];
@@ -203,14 +236,14 @@ void Ewald::realSpace() {
 			  fr[j+2*N] -= f[2];
 		}
 	}
+#endif
 }
 
-void Ewald::realSpaceAux(int ii, int jj, double * vv, double *f) {
+void Ewald::realSpaceAux(int ii, int jj, double *vv, double *f) {
 	*vv = 0;
 	for (int i = 0 ; i < 3 ; i++) {
 		f[i] = 0;
 	}
-
 	double r[3];
 	for (int l = 0 ; l < 3 ; l++) {
 		r[l] = p[ii + N*l] - p[jj + N*l];
@@ -222,7 +255,9 @@ void Ewald::realSpaceAux(int ii, int jj, double * vv, double *f) {
 	}
 
 	int hi = int(rRange + .5); // How many images in real space
-	int lo = -hi;
+	int lo = -hi; 
+	double qprod = Q[ii] * Q[jj];
+	double pref = 2 * alpha / sqrt(M_PI);
 
 	// Sum over periodic images
 	for(int i=lo ; i <= hi ; i++ ){
@@ -235,19 +270,155 @@ void Ewald::realSpaceAux(int ii, int jj, double * vv, double *f) {
 				if (norm2 !=0 && norm2 < rRange*rRange){
 					double norm = sqrt(norm2);
 					// Ewald energy
-					double ef = Q[ii] * Q[jj] * erfc(alpha * norm) / norm;
+					double ef = qprod * erfc(alpha * norm) / norm;
 					*vv += ef;
 					// Forces
-					double cm = (2 * alpha / sqrt(M_PI)) * exp(-alpha2 * norm2)
-						* Q[ii] * Q[jj] + ef;
-					f[0] += cm * d0 / norm2; //check formula
-					f[1] += cm * d1 / norm2;
-					f[2] += cm * d2 / norm2;
+					double cm = pref * qprod * exp(-alpha2 * norm2) + ef;
+					cm /= norm2; // Check formula
+					f[0] += cm * d0;
+					f[1] += cm * d1;
+					f[2] += cm * d2;
 				}
 			}
 		}
 	}
 }
+
+#ifdef USE_MKL
+void Ewald::realSpaceAux2MKL(int ii) {
+	double fac = 2 * alpha / sqrt(M_PI);
+	double rRange2 = rRange * rRange;
+	double f[3];
+
+	// Compute all the squared norms
+	//int inx = 0, ind = 0;
+	/*int inx = 0;
+	bool *in_range_cur = in_range;
+	double *norms2_cur = norms2;
+	for (int jj = 0 ; jj < ii ; ++jj) {
+		for (int l = 0 ; l < 3 ; l++) {
+			double r = p[ii + N*l] - p[jj + N*l];
+			if (r > .5) {
+				r -= 1.0;
+			} else if (r < -.5) {
+				r += 1.0;
+			}
+			rrs[3*jj + l] = r;
+		}
+
+		double r0 = rrs[3*jj], r1 = rrs[3*jj+1], r2 = rrs[3*jj+2];
+		for(int i = 0 ; i < rs_dim ; i++ ){
+			double d0 = r0 - i;
+			for(int j = 0 ; j< rs_dim; j++ ){
+				double d1 = r1 - j;
+				for(int k = 0; k < rs_dim; k++) {
+					double d2 = r2 - k;
+					double n = d0 * d0 + d1 * d1 + d2 * d2;
+
+					// Just telling the computer exactly what to do:
+					// Check if n < r^2, use it as a condition, put the value
+					// in in_range, increment in_range_cur.
+					if ((*in_range_cur++ = std::signbit(n - rRange2))) {
+						*norms2_cur++ = n;
+						inx++;
+					}
+				}
+			}
+		}
+	} */
+	for (int jj = 0 ; jj < ii ; ++jj) {
+		for (int l = 0 ; l < 3 ; l++) {
+			double r = p[ii + N*l] - p[jj + N*l];
+			if (r > .5) {
+				r -= 1.0;
+			} else if (r < -.5) {
+				r += 1.0;
+			}
+			rrs[3*jj + l] = r;
+		}
+	}
+
+	double d0i, d1i, d2i, d0, d1, d2;
+	double *norms2_cur = norms2;
+	for (int jj = 0 ; jj < ii ; ++jj) {
+		d0i = rrs[3*jj] - rs_hi;
+		d1i = rrs[3*jj+1] - rs_hi;
+		d2i = rrs[3*jj+2] - rs_hi;
+		d0 = d0i;
+		for(int i = 0 ; i < rs_dim ; i++, d0 += 1.0){
+			d1 = d1i;
+			for(int j = 0 ; j < rs_dim ; j++, d1 += 1.0){
+				d2 = d2i;
+				for(int k = 0 ; k < rs_dim ; k++, d2 += 1.0) {
+					*norms2_cur++ = d0 * d0 + d1 * d1 + d2 * d2;
+				}
+			}
+		}
+	}
+
+	norms2_cur = norms2;
+	for (int p = 0 ; p < ii * rs_dim3 ; ++p) {
+		//if ((in_range[p] = std::signbit(norms2[p] - rRange2))) {
+		if ((in_range[p] = (norms2[p] < rRange2))) {
+			*norms2_cur++ = norms2[p];
+		}
+	}
+	int inx = norms2_cur - norms2;
+
+	// Use MKL functions on vectors
+	vdSqrt(inx, norms2, norms);
+	cblas_daxpby(inx, alpha, norms, 1, 0.0, efs, 1);
+	vdErfc(inx, efs, efs);
+	vdDiv(inx, efs, norms, efs);
+
+	cblas_daxpby(inx, -alpha2, norms, 1, 0.0, cms, 1);
+	vdExp(inx, cms, cms);
+	cblas_daxpby(inx, 1.0, efs, 1, fac, cms, 1);
+	vdDiv(inx, cms, norms2, cms);
+
+	// Store the forces
+	//inx = 0;
+	//ind = 0;
+	bool *in_range_cur = in_range;
+	double *efs_cur = efs;
+	double *cms_cur = cms;
+	for (int jj = 0 ; jj < ii ; ++jj) {
+		double qprod = Q[ii] * Q[jj];
+		for (int i = 0 ; i < 3 ; i++) {
+			f[i] = 0;
+		}
+
+		d0i = rrs[3*jj] - rs_hi;
+		d1i = rrs[3*jj+1] - rs_hi;
+		d2i = rrs[3*jj+2] - rs_hi;
+		d0 = d0i;
+		for(int i = 0 ; i < rs_dim ; i++, d0 += 1.0){
+			d1 = d1i;
+			for(int j = 0 ; j < rs_dim ; j++, d1 += 1.0){
+				d2 = d2i;
+				for(int k = 0 ; k < rs_dim ; k++, d2 += 1.0) {
+					if (*in_range_cur++) {
+						vr += qprod * (*efs_cur++);
+						double cadd = qprod * (*cms_cur++);
+						f[0] += cadd * d0;
+						f[1] += cadd * d1;
+						f[2] += cadd * d2;
+					}
+				}
+			}
+		}
+
+		fr[ii] += f[0];
+		fr[jj] -= f[0];
+
+		fr[ii+N] += f[1];
+		fr[jj+N] -= f[1];
+
+		fr[ii+2*N] += f[2];
+		fr[jj+2*N] -= f[2];
+	}
+}
+#endif
 
 double Ewald::fourierSpace() {
 	for(int i = 0 ; i < 3*N ; i++) {
@@ -257,7 +428,7 @@ double Ewald::fourierSpace() {
 	getStruct(); // Structure factor
 	getPoten(); // Potential
 
-	for (int i = 0 ; i < 2*N ; i++){ //Force calcuation //particles loop
+	for (int i = 0 ; i < N ; i++){ //Force calcuation //particles loop
 		arrays(i); // Fill cx[] and sx[] for particle i
 
 		for(int ii = 0 ; ii < dim ; ii++){

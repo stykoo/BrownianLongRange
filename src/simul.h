@@ -66,6 +66,7 @@ class Simul {
 		long n_iters_th; //!< Number of time iterations of thermalization
 		bool inertia; //!< With or without inertia
 		double mass; //!< Mass of the particles if inertial dynamics
+		double bias; //!< Bias toward Fourier space
 		long skip; //!< Iterations between two computation of observables
 		std::string output; //!< Name of the output file
 		double step_r; //!< Spatial resolution for correlations

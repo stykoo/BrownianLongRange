@@ -30,8 +30,8 @@ along with BrownianLongRange.  If not, see <http://www.gnu.org/licenses/>.
 #define BROWNIANLONGRANGE_STATE_H_
 
 #include <vector>
-#include <array>
-#include <random>
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
 #include "ewald.h"
 
 // 3d system
@@ -49,7 +49,7 @@ class State {
 		State(const long _n_parts, const long _n_parts_1,
 		      const double _charge1, const double _charge2,
 		      const double _pot_strength, const double _temperature,
-			  const double _dt, const double _mass);
+			  const double _dt, const double _mass, const double _bias);
 		~State();
 		void evolveInertia(); //!< Do one time step with inertia
 		void evolveNoInertia(); //!< Do one time step without inertia
@@ -67,9 +67,8 @@ class State {
 		const double dt; //!< Timestep
 		double mass; //!< Mass of the particles if inertial dynamics
 
-		std::mt19937 rng; //!< Random number generator
-		//! Gaussian noise for temperature
-		std::normal_distribution<double> noise;
+		double sigma;
+		gsl_rng *rng;
 
 		std::vector<double> positions; //!< Positions of the particles
 		std::vector<double> charges; //!< Charges of the particles

@@ -10,6 +10,8 @@
 #ifndef BROWNIANLONGRANGE_EVALD_H_
 #define BROWNIANLONGRANGE_EVALD_H_
 
+#define USE_MKL
+
 #include <math.h>
 
 class Ewald{
@@ -26,6 +28,9 @@ class Ewald{
 		void setup(double, double, double);
 		void realSpace();
 		void realSpaceAux(int i, int j, double *v, double *f);
+#ifdef USE_MKL
+		void realSpaceAux2MKL(int ii);
+#endif
 		double fourierSpace();
 		void getPoten();
 		void getStruct();
@@ -54,6 +59,12 @@ class Ewald{
 	    double vf; //!< Energy in Fourier space
 		double *cx, *cy, *cz, *sx, *sy, *sz; //!< Arrays for structure factor
 
+#ifdef USE_MKL
+		int rs_lo, rs_hi, rs_dim, rs_dim3;
+		double *norms2, *norms, *efs, *cms;
+		double *rrs;
+		bool *in_range;
+#endif
 };
 
 #endif

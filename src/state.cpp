@@ -27,7 +27,7 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <cmath>
-#include <chrono>
+#include <random>
 #include <algorithm>
 #include "state.h"
 
@@ -39,24 +39,23 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 State::State(const long _n_parts, const long _n_parts_1,
 	         const double _charge1, const double _charge2,
 	         const double _pot_strength, const double _temperature,
-	         const double _dt, const double _mass) :
+	         const double _dt, const double _mass, const double _bias=1.0) :
 	n_parts(_n_parts), n_parts_1(_n_parts_1), pot_strength(_pot_strength),
-	dt(_dt), mass(_mass),
-	// We seed the RNG with the current time
-	rng(std::chrono::system_clock::now().time_since_epoch().count()),
-	// Gaussian noise from the temperature
-	noise(0.0, std::sqrt(2.0 * _temperature * dt))
+	dt(_dt), mass(_mass), sigma(std::sqrt(2.0 * _temperature * dt))
 {
-    std::uniform_real_distribution<double> rndPos(0.0, 1.0);
+	std::random_device rn;
+	unsigned int sd = rn() ;
+	rng = gsl_rng_alloc (gsl_rng_mt19937);
+	gsl_rng_set(rng, sd);
 
 	positions.resize(DIM * n_parts);
-	//for (long i = 0 ; i < DIM * n_parts ; ++i) {
-	for (long i = 0 ; i < 2 * n_parts ; ++i) {
-		positions[i] = rndPos(rng);
+	for (long i = 0 ; i < DIM * n_parts ; ++i) {
+	//for (long i = 0 ; i < 2 * n_parts ; ++i) {
+		positions[i] = gsl_ran_flat(rng, 0.0, 1.0);
 	}
-	for (long i = 2 * n_parts ; i < DIM * n_parts ; ++i) {
+	/*for (long i = 2 * n_parts ; i < DIM * n_parts ; ++i) {
 		positions[i] = 0;
-	}
+	}*/
 
 	charges.resize(n_parts);
 	for (long i = 0 ; i < n_parts_1 ; ++i) {
@@ -66,11 +65,11 @@ State::State(const long _n_parts, const long _n_parts_1,
 		charges[i] = _charge2;
 	}
 
-	double bias = 1;
-	ew = new Ewald(n_parts, positions.data(), bias, charges.data());
+	ew = new Ewald(n_parts, positions.data(), _bias, charges.data());
 }
 
 State::~State() {
+	gsl_rng_free(rng);
 	delete ew;
 }
 
@@ -86,7 +85,8 @@ void State::evolveNoInertia() {
 
 	for (long i = 0 ; i < DIM * n_parts ; ++i) {
 		// Internal forces + Gaussian noise
-		positions[i] += dt * forces[i] + noise(rng);
+		positions[i] += dt * forces[i];
+		positions[i] += gsl_ran_gaussian_ziggurat(rng, sigma);
 	}
 
 	// Enforce PBC
@@ -94,7 +94,7 @@ void State::evolveNoInertia() {
 		positions[i] -= std::floor(positions[i]);
 	}
 
-	for (long i = 2 * n_parts ; i < DIM * n_parts ; ++i) {
+	/*for (long i = 2 * n_parts ; i < DIM * n_parts ; ++i) {
 		positions[i] = 0;
-	}
+	}*/
 }
