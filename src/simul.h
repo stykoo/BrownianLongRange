@@ -62,6 +62,7 @@ class Simul {
 		double charge2; //!< Charge of species 1
 		double pot_strength; //!< Strength of interparticle potential
 		double temperature; //!< Temperature
+		double field; //!< External electric field along 1st axis
 		double dt; //!< Timestep
 		long n_iters; //!< Number of time iterations
 		long n_iters_th; //!< Number of time iterations of thermalization

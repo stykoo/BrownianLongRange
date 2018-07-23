@@ -50,7 +50,8 @@ class State {
 		State(const long _n_parts, const long _n_parts_1,
 		      const double _charge1, const double _charge2,
 		      const double _pot_strength, const double _temperature,
-			  const double _dt, const double _mass, const double _bias);
+			  const double _field, const double _dt, const double _mass,
+			  const double _bias);
 		~State();
 		void evolveNoInertia(); //!< Do one time step without inertia
 		void evolveInertia(); //!< Do one time step with inertia
@@ -65,6 +66,7 @@ class State {
 		const long n_parts; //!< Number of particles
 		const long n_parts_1; //!< Number of particles of species 1
 		const double pot_strength; //!< Strength of the interparticle potential
+		const double field; //!< External field
 		const double dt; //!< Timestep
 		double mass; //!< Mass of the particles if inertial dynamics
 

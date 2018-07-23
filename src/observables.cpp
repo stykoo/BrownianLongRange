@@ -93,8 +93,8 @@ void Observables::compute(const State *state) {
  */
 void Observables::writeH5(const std::string fname, double charge1,
 		                  double charge2, double pot_strength,
-						  double temperature, double dt, long n_iters,
-						  long n_iters_th, double bias, long skip,
+						  double temperature, double field, double dt,
+						  long n_iters, long n_iters_th, double bias, long skip,
 						  int inertia) const {
 	try {
 		H5::H5File file(fname, H5F_ACC_TRUNC);
@@ -119,6 +119,9 @@ void Observables::writeH5(const std::string fname, double charge1,
 		H5::Attribute a_temperature = file.createAttribute(
 				"temperature", H5::PredType::NATIVE_DOUBLE, default_ds);
 		a_temperature.write(H5::PredType::NATIVE_DOUBLE, &temperature);
+		H5::Attribute a_field = file.createAttribute(
+				"field", H5::PredType::NATIVE_DOUBLE, default_ds);
+		a_field.write(H5::PredType::NATIVE_DOUBLE, &field);
 		H5::Attribute a_dt = file.createAttribute(
 				"dt", H5::PredType::NATIVE_DOUBLE, default_ds);
 		a_dt.write(H5::PredType::NATIVE_DOUBLE, &dt);

@@ -39,9 +39,11 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
 State::State(const long _n_parts, const long _n_parts_1,
 	         const double _charge1, const double _charge2,
 	         const double _pot_strength, const double _temperature,
-	         const double _dt, const double _mass, const double _bias=1.0) :
+	         const double _field, const double _dt, const double _mass,
+			 const double _bias=1.0) :
 	n_parts(_n_parts), n_parts_1(_n_parts_1), pot_strength(_pot_strength),
-	dt(_dt), mass(_mass), sigma(std::sqrt(2.0 * _temperature * dt))
+	field(_field), dt(_dt), mass(_mass),
+	sigma(std::sqrt(2.0 * _temperature * dt))
 {
 	std::random_device rn;
 	unsigned int sd = rn() ;
@@ -100,8 +102,12 @@ void State::evolveNoInertia() {
 	long hi = DIM * n_parts;
 #endif
 
+	for (long i = 0 ; i < n_parts ; ++i) {
+		// External forces
+		positions[i] += dt * field * charges[i];
+	}
 	for (long i = 0 ; i < hi ; ++i) {
-		// Internal forces + External force + Gaussian noise
+		// Internal forces + Gaussian noise
 		positions[i] += dt * forces[i];
 		positions[i] += gsl_ran_gaussian_ziggurat(rng, sigma);
 		// Enforce PBC
@@ -134,6 +140,10 @@ void State::evolveInertia() {
 
 	double *forces = ew->getForce();
 
+	for (long i = 0 ; i < n_parts ; ++i) {
+		// External forces
+		positions[i] += c_rf * field * charges[i];
+	}
 	for (long i = 0 ; i < hi ; ++i) {
 		double u = gsl_ran_gaussian_ziggurat(rng, sigma);
 
@@ -143,10 +153,14 @@ void State::evolveInertia() {
 		positions[i] += c_rn * u;
 		positions[i] -= std::floor(positions[i]); // PBC
 
-		// Update velocities (old forces)
+		// Update velocities (old internal forces)
 		velocities[i] *= a;
 		velocities[i] += c_vf * a * forces[i];
 		velocities[i] += c_vn * u;
+	}
+	for (long i = 0 ; i < n_parts ; ++i) {
+		// External forces (old + new)
+		velocities[i] += c_vf * (a + 1.0) * field * charges[i];
 	}
 
 	// New forces
@@ -154,7 +168,7 @@ void State::evolveInertia() {
 	forces = ew->fullforce(&pot);
 
 	for (long i = 0 ; i < hi ; ++i) {
-		// Update velocities (new forces)
+		// Update velocities (new internal forces)
 		velocities[i] += c_vf * forces[i];
 	}
 }

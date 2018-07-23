@@ -39,8 +39,8 @@ class Observables {
 		void compute(const State *state);
 		//! Export to hdf5
 		void writeH5(const std::string fname, double charge1, double charge2,
-	                 double pot_strength, double temperature, double dt,
-					 long n_iters, long n_iters_th, double bias,
+	                 double pot_strength, double temperature, double field,
+					 double dt, long n_iters, long n_iters_th, double bias,
 					 long skip, int inertia) const;
 
 	private:

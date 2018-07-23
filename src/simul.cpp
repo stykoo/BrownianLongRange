@@ -67,13 +67,14 @@ Simul::Simul(int argc, char **argv) {
 		("eps,e", po::value<double>(&pot_strength)->default_value(1.0),
 		 "Strength of interparticle potential")
 		("temp,T", po::value<double>(&temperature)->required(), "Temperature")
+		("field,F", po::value<double>(&field)->default_value(0.0),
+		 "External electic field")
 		("dt,t", po::value<double>(&dt)->required(), "Timestep")
 		("iters,I", po::value<long>(&n_iters)->required(),
 		 "Number of time iterations")
 		("itersTh,J", po::value<long>(&n_iters_th)->default_value(0),
 		 "Number of time iterations of thermalization")
-		("inertia,i", po::bool_switch(&inertia),
-		 "Simulation with inertia")
+		("inertia,i", po::bool_switch(&inertia), "Simulation with inertia")
 		("mass,M", po::value<double>(&mass)->default_value(0.0),
 		 "Mass of the particles")
 		("bias", po::value<double>(&bias)->default_value(1.0),
@@ -139,7 +140,7 @@ void Simul::run() {
 
 	// Initialize the state of the system
 	State state(n_parts, n_parts_1, charge1, charge2, pot_strength,
-	            temperature, dt, mass, bias);
+	            temperature, field, dt, mass, bias);
 	Observables obs(n_parts, n_parts_1, n_div_x);
 
 #ifdef VISU
@@ -184,7 +185,7 @@ void Simul::run() {
 	}
 
 	obs.writeH5(output, charge1, charge2, pot_strength, temperature,
-				dt, n_iters, n_iters_th, bias, skip, (int) inertia);
+				field, dt, n_iters, n_iters_th, bias, skip, (int) inertia);
 
 #ifdef VISU
 #ifdef RESTRICT_2D
@@ -206,8 +207,9 @@ void Simul::print() const {
 	          << ", n_parts_1=" << n_parts_1 << ", charge1="
 			  << charge1 << ", charge2=" << charge2
 	          << ", pot_strength=" << pot_strength << ", temperature="
-			  << temperature << ", dt=" << dt << ", n_iters=" << n_iters
-			  << ", n_iters_th=" << n_iters_th << ", mass=" << mass
-			  << ", bias=" << bias << ", skip=" << skip << "\n";
+			  << temperature << ", field=" << field << ", dt=" << dt
+			  << ", n_iters=" << n_iters << ", n_iters_th=" << n_iters_th
+			  << ", mass=" << mass << ", bias=" << bias << ", skip="
+			  << skip << "\n";
 	std::cout << std::endl;
 }
