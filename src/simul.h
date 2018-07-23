@@ -70,7 +70,7 @@ class Simul {
 		double bias; //!< Bias toward Fourier space
 		long skip; //!< Iterations between two computation of observables
 		std::string output; //!< Name of the output file
-		double step_r; //!< Spatial resolution for correlations
+		long n_div_x; //!< Number of divisions for correlations
 		int sleep; //!< Number of milliseconds to sleep for between iterations
 
 		SimulInitStatus status; //!< Status after initialization

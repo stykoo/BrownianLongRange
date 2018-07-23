@@ -29,15 +29,15 @@ along with the program.  If not, see <http://www.gnu.org/licenses/>.
 #include <exception>
 #include <thread>
 #include <boost/program_options.hpp>
-// #include "observables.h"
+#include "observables.h"
 #include "simul.h"
 #include "state.h"
 
 #ifdef VISU
 #ifdef RESTRICT_2D
 #include "visu2d.h"
-#endif
 //#include "visu3d.h"
+#endif
 #endif
 
 namespace po = boost::program_options;
@@ -83,9 +83,9 @@ Simul::Simul(int argc, char **argv) {
 		("output,O",
 		 po::value<std::string>(&output)->default_value("observables.h5"),
 		 "Name of the output file")
-		("stepr,s",
-		 po::value<double>(&step_r)->default_value(0.2),
-		 "Spatial resolution for correlations")
+		("div,d",
+		 po::value<long>(&n_div_x)->default_value(100),
+		 "Number of divisions for correlations")
 		("sleep", po::value<int>(&sleep)->default_value(0),
 		 "Number of milliseconds to sleep for between iterations")
 		("help,h", "Print help message and exit")
@@ -117,7 +117,7 @@ Simul::Simul(int argc, char **argv) {
 		|| notStrPositive(dt, "dt") || notPositive(n_iters, "n_iters")
 		|| notPositive(n_iters_th, "n_iters_th")
 		|| notPositive(mass, "mass") || notStrPositive(bias, "bias")
-		|| notStrPositive(step_r, "step_r")) {
+		|| notStrPositive(n_div_x, "n_div_x")) {
 		status = SIMUL_INIT_FAILED;
 		return;
 	}
@@ -140,14 +140,15 @@ void Simul::run() {
 	// Initialize the state of the system
 	State state(n_parts, n_parts_1, charge1, charge2, pot_strength,
 	            temperature, dt, mass, bias);
-	/*Observables obs(len, n_parts, step_r, n_div_angle, less_obs);*/
+	Observables obs(n_parts, n_parts_1, n_div_x);
 
 #ifdef VISU
 #ifdef RESTRICT_2D
 	Visu visu(&state, n_parts, n_parts_1);
 	std::thread thVisu(&Visu::run, &visu); 
-#endif
 	//Visu3d visu(&state, n_parts, n_parts_1);
+	//std::thread thVisu(&Visu3d::run, &visu); 
+#endif
 #endif
 
 	if (inertia) {
@@ -158,9 +159,9 @@ void Simul::run() {
 		// Time evolution
 		for (long t = 0 ; t < n_iters ; ++t) {
 			state.evolveInertia();
-			/*if (t % skip == 0) {
+			if (t % skip == 0) {
 				obs.compute(&state);
-			}*/
+			}
 			if (sleep > 0) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
 			}
@@ -173,17 +174,17 @@ void Simul::run() {
 		// Time evolution
 		for (long t = 0 ; t < n_iters ; ++t) {
 			state.evolveNoInertia();
-			/*if (t % skip == 0) {
+			if (t % skip == 0) {
 				obs.compute(&state);
-			}*/
+			}
 			if (sleep > 0) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
 			}
 		}
 	}
 
-	/*obs.writeH5(output, rho, n_parts, pot_strength, temperature, rot_dif,
-				activity, dt, n_iters, n_iters_th, skip);*/
+	obs.writeH5(output, charge1, charge2, pot_strength, temperature,
+				dt, n_iters, n_iters_th, bias, skip, (int) inertia);
 
 #ifdef VISU
 #ifdef RESTRICT_2D
