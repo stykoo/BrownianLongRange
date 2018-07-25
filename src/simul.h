@@ -31,7 +31,7 @@ along with BrownianLongRange.  If not, see <http://www.gnu.org/licenses/>.
 #include <string>
 #include <iostream>
 
-#define VISU
+//#define VISU
 
 //! State of the simulation after initialization
 enum SimulInitStatus {

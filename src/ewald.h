@@ -14,18 +14,23 @@
 
 #include <math.h>
 
+enum Dim { DIM2 = 2, DIM3 = 3 };
+
 class Ewald{
 	public:
-		Ewald(int _N, double *_p, double bias, double *_q);
+		Ewald(const int _N, double *_p, const double bias, const double *_q,
+			  const Dim _D=DIM3);
 		~Ewald();
 
 		double* fullforce(double *);
-		//void samplefourier(int ns);
 		void dump();
 		double* getForce() { return force; }
 
+		static constexpr double error = 1e-8; //!< Error
+
 	private:
-		void setup(double, double, double);
+		void initReal();
+		void initFourier();
 		void realSpace();
 		void realSpaceAux(int i, int j, double *v, double *f);
 #ifdef USE_MKL
@@ -36,16 +41,17 @@ class Ewald{
 		void getStruct();
 		void arrays(int i);
 
-		int N; //!< Number of particles
+		const int D; //!< Dimension of the space in which the particles are
+		const int N; //!< Number of particles
 		double *p; //!< Positions of the particles
-		double *Q; //!< Particle charges
+		const double *Q; //!< Particle charges
 		double alpha; //!< Parameter of Evald method
 		double alpha2; //!< Square of parameter of Evald method
 		double rRange; //!< Range in real space
 		double fRange; //!< Range in Fourier space
 		int lq; //!< Integer range in Fourier space
-		int dim; //!< Size of arrays in 1d Fourier space
-		int dim3; //!< Size of arrays in 3d Fourier space
+		int size; //!< Size of arrays in 1d Fourier space
+		int sizeTot; //!< Size of arrays in 2d/3d Fourier space
 		double *ff; //!< Forces in Fourier space
 		double *fr; //!< Forces in real space
 	    double *force; //!< Total forces
@@ -60,7 +66,7 @@ class Ewald{
 		double *cx, *cy, *cz, *sx, *sy, *sz; //!< Arrays for structure factor
 
 #ifdef USE_MKL
-		int rs_lo, rs_hi, rs_dim, rs_dim3;
+		int rs_lo, rs_hi, rs_size, rs_sizeTot;
 		double *norms2, *norms, *efs, *cms;
 		double *rrs;
 		bool *in_range;

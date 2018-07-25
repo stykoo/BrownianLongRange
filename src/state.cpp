@@ -74,7 +74,11 @@ State::State(const long _n_parts, const long _n_parts_1,
 		charges[i] = _charge2;
 	}
 
-	ew = new Ewald(n_parts, positions.data(), _bias, charges.data());
+#ifdef RESTRICT_2D
+	ew = new Ewald(n_parts, positions.data(), _bias, charges.data(), DIM2);
+#else
+	ew = new Ewald(n_parts, positions.data(), _bias, charges.data(), DIM3);
+#endif
 	// Initialize the forces (needed for inertial dynamics)
 	double pot;
 	ew->fullforce(&pot);
@@ -108,7 +112,7 @@ void State::evolveNoInertia() {
 	}
 	for (long i = 0 ; i < hi ; ++i) {
 		// Internal forces + Gaussian noise
-		positions[i] += dt * forces[i];
+		positions[i] += dt * pot_strength * forces[i];
 		positions[i] += gsl_ran_gaussian_ziggurat(rng, sigma);
 		// Enforce PBC
 		positions[i] -= std::floor(positions[i]);
@@ -118,7 +122,7 @@ void State::evolveNoInertia() {
 /*!
  * \brief Do one time step
  *
- * Evolve the system for one time step according to coupled Langevin equation
+ * Evolve the system for one time step according to coupled Langevin equations
  * with intertia.
  *
  * See doi/10.1080/00268976.2012.760055 for algorithm (Eq. 21-22)
@@ -149,13 +153,13 @@ void State::evolveInertia() {
 
 		// Update positions
 		positions[i] += c_rv * velocities[i];
-		positions[i] += c_rf * forces[i];
+		positions[i] += c_rf * pot_strength * forces[i];
 		positions[i] += c_rn * u;
 		positions[i] -= std::floor(positions[i]); // PBC
 
 		// Update velocities (old internal forces)
 		velocities[i] *= a;
-		velocities[i] += c_vf * a * forces[i];
+		velocities[i] += c_vf * a * pot_strength * forces[i];
 		velocities[i] += c_vn * u;
 	}
 	for (long i = 0 ; i < n_parts ; ++i) {
@@ -169,6 +173,6 @@ void State::evolveInertia() {
 
 	for (long i = 0 ; i < hi ; ++i) {
 		// Update velocities (new internal forces)
-		velocities[i] += c_vf * forces[i];
+		velocities[i] += c_vf * pot_strength * forces[i];
 	}
 }
