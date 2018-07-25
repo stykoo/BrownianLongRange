@@ -32,13 +32,7 @@ along with the program.  If not, see <http://www.gnu.org/licenses/>.
 #include "observables.h"
 #include "simul.h"
 #include "state.h"
-
-#ifdef VISU
-#ifdef RESTRICT_2D
 #include "visu2d.h"
-//#include "visu3d.h"
-#endif
-#endif
 
 namespace po = boost::program_options;
 
@@ -79,6 +73,8 @@ Simul::Simul(int argc, char **argv) {
 		 "Mass of the particles")
 		("bias", po::value<double>(&bias)->default_value(1.0),
 		 "Bias toward Fourier space")
+		("2d", po::bool_switch(&restrict_2d),
+		 "Restrict the system to 2 dimensions")
 		("skip,S", po::value<long>(&skip)->default_value(100),
 		 "Iterations between two computations of observables")
 		("output,O",
@@ -87,6 +83,7 @@ Simul::Simul(int argc, char **argv) {
 		("div,d",
 		 po::value<long>(&n_div_x)->default_value(100),
 		 "Number of divisions for correlations")
+		("show", po::bool_switch(&show), "Visualize the system (only in 2d)")
 		("sleep", po::value<int>(&sleep)->default_value(0),
 		 "Number of milliseconds to sleep for between iterations")
 		("help,h", "Print help message and exit")
@@ -138,19 +135,19 @@ void Simul::run() {
 		return;
 	}
 
+	int D = (restrict_2d) ? 2 : 3;
+
 	// Initialize the state of the system
 	State state(n_parts, n_parts_1, charge1, charge2, pot_strength,
-	            temperature, field, dt, mass, bias);
+	            temperature, field, dt, mass, bias, D);
 	Observables obs(n_parts, n_parts_1, n_div_x);
 
-#ifdef VISU
-#ifdef RESTRICT_2D
-	Visu visu(&state, n_parts, n_parts_1);
-	std::thread thVisu(&Visu::run, &visu); 
-	//Visu3d visu(&state, n_parts, n_parts_1);
-	//std::thread thVisu(&Visu3d::run, &visu); 
-#endif
-#endif
+	Visu *visu = NULL;
+	std::thread *thVisu = NULL;
+	if (restrict_2d && show) {
+		visu = new Visu(&state, n_parts, n_parts_1);
+		thVisu = new std::thread(&Visu::run, visu); 
+	}
 
 	if (inertia) {
 		// Thermalization
@@ -187,11 +184,11 @@ void Simul::run() {
 	obs.writeH5(output, charge1, charge2, pot_strength, temperature,
 				field, dt, n_iters, n_iters_th, bias, skip, (int) inertia);
 
-#ifdef VISU
-#ifdef RESTRICT_2D
-	thVisu.join();
-#endif
-#endif
+	if (restrict_2d && show) {
+		thVisu->join();
+		delete thVisu;
+		delete visu;
+	}
 }
 
 /*!
@@ -199,9 +196,14 @@ void Simul::run() {
  */
 void Simul::print() const {
 	if (inertia) {
-		std::cout << "# [WithInertia] ";
+		std::cout << "# [WithInertia,";
 	} else {
-		std::cout << "# [WithoutInertia] ";
+		std::cout << "# [WithoutInertia,";
+	}
+	if (restrict_2d) {
+		std::cout << "2d] ";
+	} else {
+		std::cout << "3d] ";
 	}
 	std::cout << "n_parts=" << n_parts
 	          << ", n_parts_1=" << n_parts_1 << ", charge1="

@@ -40,9 +40,9 @@ State::State(const long _n_parts, const long _n_parts_1,
 	         const double _charge1, const double _charge2,
 	         const double _pot_strength, const double _temperature,
 	         const double _field, const double _dt, const double _mass,
-			 const double _bias=1.0) :
-	n_parts(_n_parts), n_parts_1(_n_parts_1), pot_strength(_pot_strength),
-	field(_field), dt(_dt), mass(_mass),
+			 const double _bias=1.0, const int _D=3) :
+	D(_D), n_parts(_n_parts), n_parts_1(_n_parts_1),
+	pot_strength(_pot_strength), field(_field), dt(_dt), mass(_mass),
 	sigma(std::sqrt(2.0 * _temperature * dt))
 {
 	std::random_device rn;
@@ -50,21 +50,13 @@ State::State(const long _n_parts, const long _n_parts_1,
 	rng = gsl_rng_alloc (gsl_rng_mt19937);
 	gsl_rng_set(rng, sd);
 
-	positions.resize(DIM * n_parts);
-#ifdef RESTRICT_2D
-	for (long i = 0 ; i < 2 * n_parts ; ++i) {
-		positions[i] = gsl_ran_flat(rng, 0.0, 1.0);
-	}
-	for (long i = 2 * n_parts ; i < DIM * n_parts ; ++i) {
-		positions[i] = 0;
-	}
-#else
-	for (long i = 0 ; i < DIM * n_parts ; ++i) {
-		positions[i] = gsl_ran_flat(rng, 0.0, 1.0);
-	}
-#endif
+	positions.resize(D * n_parts);
 
-	velocities.assign(DIM * n_parts, 0.0);
+	for (long i = 0 ; i < D * n_parts ; ++i) {
+		positions[i] = gsl_ran_flat(rng, 0.0, 1.0);
+	}
+
+	velocities.assign(D * n_parts, 0.0);
 
 	charges.resize(n_parts);
 	for (long i = 0 ; i < n_parts_1 ; ++i) {
@@ -74,11 +66,9 @@ State::State(const long _n_parts, const long _n_parts_1,
 		charges[i] = _charge2;
 	}
 
-#ifdef RESTRICT_2D
-	ew = new Ewald(n_parts, positions.data(), _bias, charges.data(), DIM2);
-#else
-	ew = new Ewald(n_parts, positions.data(), _bias, charges.data(), DIM3);
-#endif
+	Dim DD = (D == 3) ? DIM3 : DIM2;
+	ew = new Ewald(n_parts, positions.data(), _bias, charges.data(), DD);
+
 	// Initialize the forces (needed for inertial dynamics)
 	double pot;
 	ew->fullforce(&pot);
@@ -100,17 +90,11 @@ void State::evolveNoInertia() {
 	double pot;
 	double *forces = ew->fullforce(&pot);
 
-#ifdef RESTRICT_2D
-	long hi = 2 * n_parts;
-#else
-	long hi = DIM * n_parts;
-#endif
-
 	for (long i = 0 ; i < n_parts ; ++i) {
 		// External forces
 		positions[i] += dt * field * charges[i];
 	}
-	for (long i = 0 ; i < hi ; ++i) {
+	for (long i = 0 ; i < D * n_parts ; ++i) {
 		// Internal forces + Gaussian noise
 		positions[i] += dt * pot_strength * forces[i];
 		positions[i] += gsl_ran_gaussian_ziggurat(rng, sigma);
@@ -136,19 +120,13 @@ void State::evolveInertia() {
 	double c_vf = dt / (2.0 * mass);
 	double c_vn = b / mass;
 
-#ifdef RESTRICT_2D
-	long hi = 2 * n_parts;
-#else
-	long hi = DIM * n_parts;
-#endif
-
 	double *forces = ew->getForce();
 
 	for (long i = 0 ; i < n_parts ; ++i) {
 		// External forces
 		positions[i] += c_rf * field * charges[i];
 	}
-	for (long i = 0 ; i < hi ; ++i) {
+	for (long i = 0 ; i < D * n_parts ; ++i) {
 		double u = gsl_ran_gaussian_ziggurat(rng, sigma);
 
 		// Update positions
@@ -171,7 +149,7 @@ void State::evolveInertia() {
 	double pot;
 	forces = ew->fullforce(&pot);
 
-	for (long i = 0 ; i < hi ; ++i) {
+	for (long i = 0 ; i < D * n_parts ; ++i) {
 		// Update velocities (new internal forces)
 		velocities[i] += c_vf * pot_strength * forces[i];
 	}

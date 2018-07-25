@@ -34,10 +34,6 @@ along with BrownianLongRange.  If not, see <http://www.gnu.org/licenses/>.
 #include <gsl/gsl_randist.h>
 #include "ewald.h"
 
-// 3d system
-#define DIM 3
-#define RESTRICT_2D
-
 /*!
  * \brief Class for the state of the system
  *
@@ -51,7 +47,7 @@ class State {
 		      const double _charge1, const double _charge2,
 		      const double _pot_strength, const double _temperature,
 			  const double _field, const double _dt, const double _mass,
-			  const double _bias);
+			  const double _bias, const int _D);
 		~State();
 		void evolveNoInertia(); //!< Do one time step without inertia
 		void evolveInertia(); //!< Do one time step with inertia
@@ -63,6 +59,7 @@ class State {
 
 
 	private:
+		const int D; //!< Dimension (2 or 3)
 		const long n_parts; //!< Number of particles
 		const long n_parts_1; //!< Number of particles of species 1
 		const double pot_strength; //!< Strength of the interparticle potential

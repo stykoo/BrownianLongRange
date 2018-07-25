@@ -31,8 +31,6 @@ along with BrownianLongRange.  If not, see <http://www.gnu.org/licenses/>.
 #include <string>
 #include <iostream>
 
-//#define VISU
-
 //! State of the simulation after initialization
 enum SimulInitStatus {
 	SIMUL_INIT_SUCCESS, //!< Successful initialization
@@ -69,9 +67,11 @@ class Simul {
 		bool inertia; //!< With or without inertia
 		double mass; //!< Mass of the particles if inertial dynamics
 		double bias; //!< Bias toward Fourier space
+		bool restrict_2d; //!< Restrict the system to 2 dimensions
 		long skip; //!< Iterations between two computation of observables
 		std::string output; //!< Name of the output file
 		long n_div_x; //!< Number of divisions for correlations
+		bool show; //!< Visualize the system
 		int sleep; //!< Number of milliseconds to sleep for between iterations
 
 		SimulInitStatus status; //!< Status after initialization

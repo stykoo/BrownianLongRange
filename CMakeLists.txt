@@ -28,10 +28,8 @@ find_package(GSL REQUIRED)
 find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(Threads REQUIRED)
 find_package(SFML REQUIRED COMPONENTS system window graphics)
-find_package(VTK REQUIRED)
 find_package(MKL REQUIRED)
 include_directories(${HDF5_INCLUDE_DIRS})
-include(${VTK_USE_FILE})
 include_directories(${MKL_INCLUDE_DIRS})
 
 # Executable
@@ -54,7 +52,6 @@ target_link_libraries(
 	${Boost_LIBRARIES}
 	${CMAKE_THREAD_LIBS_INIT}
 	${SFML_LIBRARIES}
-	${VTK_LIBRARIES}
 )
 
 target_link_libraries(${EXECUTABLE_NAME} -Wl,--start-group ${MKL_LIBRARIES} -Wl,--end-group pthread dl)
