@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef _EVALD_H_
 #define _EVALD_H_
 
-#include <math.h>
+#define M_PI 3.14159265358979323846
 
 //! Dimension of the system
 enum Dim {

@@ -9,7 +9,7 @@ endif()
 set(EXECUTABLE_OUTPUT_PATH bin/${CMAKE_BUILD_TYPE})
 
 set(CMAKE_CXX_FLAGS "-W -Wall")
-set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
+set(CMAKE_CXX_FLAGS_RELEASE "-m64 -Ofast -flto -march=native -funroll-loops")
 set(CMAKE_CXX_FLAGS_DEBUG "-Og -g -pg")
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")

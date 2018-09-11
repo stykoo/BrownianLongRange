@@ -201,10 +201,15 @@ void Simul::print() const {
 		std::cout << "# [WithoutInertia,";
 	}
 	if (restrict_2d) {
-		std::cout << "2d] ";
+		std::cout << "2d,";
 	} else {
-		std::cout << "3d] ";
+		std::cout << "3d,";
 	}
+#ifdef USE_MKL
+	std::cout << "MKL] ";
+#else
+	std::cout << "NOMKL] ";
+#endif
 	std::cout << "n_parts=" << n_parts
 	          << ", n_parts_1=" << n_parts_1 << ", charge1="
 			  << charge1 << ", charge2=" << charge2

@@ -69,9 +69,9 @@ State::State(const long _n_parts, const long _n_parts_1,
 	Dim DD = (D == 3) ? DIM3 : DIM2;
 
 #ifdef USE_MKL
-	ew = new Ewald(DD, n_parts, positions.data(), charges.data(), _bias);
-#else
 	ew = new Ewald(DD, n_parts, positions.data(), charges.data(), _bias, 1);
+#else
+	ew = new Ewald(DD, n_parts, positions.data(), charges.data(), _bias);
 #endif
 
 	// Initialize the forces (needed for inertial dynamics)

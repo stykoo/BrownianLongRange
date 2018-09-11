@@ -29,7 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <iostream>
-#include <math.h>
+#include <cmath>
 #include <fstream>
 #include <cassert>
 #include "ewald.h"
@@ -43,6 +43,9 @@ using namespace std;
 
 Ewald::Ewald(const Dim D_, const int N_, double *p_, const double *Q_,
 			 const double bias_, int use_mkl_) : D(D_), N(N_) {
+#ifndef USE_MKL
+	assert(use_mkl_ == 0);
+#endif
 	//cout << "Ewald Error bound\t" << Ewald::error << endl;
 
 	// Bias large to push to fourier space

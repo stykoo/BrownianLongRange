@@ -1,6 +1,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <ctime>
+#include <cmath>
 #include "../src/ewald.h"
 
 using namespace std;
