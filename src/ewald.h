@@ -27,8 +27,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef _EVALD_H_
 #define _EVALD_H_
 
-#define USE_MKL
-
 #include <math.h>
 
 //! Dimension of the system

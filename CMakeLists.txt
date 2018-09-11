@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 2.8)
 
 PROJECT(BrownianLongRange)
 
-set(EXECUTABLE_NAME "BrownianLongRange")
-
 # Build in release mode by default
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
@@ -28,9 +26,16 @@ find_package(GSL REQUIRED)
 find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(Threads REQUIRED)
 find_package(SFML REQUIRED COMPONENTS system window graphics)
-find_package(MKL REQUIRED)
+find_package(MKL)
 include_directories(${HDF5_INCLUDE_DIRS})
 include_directories(${MKL_INCLUDE_DIRS})
+
+if (MKL_FOUND)
+	set(EXECUTABLE_NAME "BrownianLongRange_MKL")
+else()
+	set(EXECUTABLE_NAME "BrownianLongRange")
+endif()
+
 
 # Executable
 file(
@@ -43,6 +48,10 @@ add_executable(
 	${EXECUTABLE_NAME}
 	${source_files}
 )
+
+if (MKL_FOUND)
+	target_compile_definitions(${EXECUTABLE_NAME} PRIVATE USE_MKL)
+endif()
 
 # Linking
 target_link_libraries(
