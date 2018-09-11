@@ -140,7 +140,7 @@ void Simul::run() {
 	// Initialize the state of the system
 	State state(n_parts, n_parts_1, charge1, charge2, pot_strength,
 	            temperature, field, dt, mass, bias, D);
-	Observables obs(n_parts, n_parts_1, n_div_x, D);
+	Observables obs(n_parts, n_parts_1, n_div_x, n_iters / skip, D);
 
 	Visu *visu = NULL;
 	std::thread *thVisu = NULL;
@@ -154,12 +154,13 @@ void Simul::run() {
 		for (long t = 0 ; t < n_iters_th ; ++t) {
 			state.evolveInertia();
 		}
+		state.resetPosIni();
 		// Time evolution
 		for (long t = 0 ; t < n_iters ; ++t) {
-			state.evolveInertia();
 			if (t % skip == 0) {
-				obs.compute(&state);
+				obs.compute(&state, t / skip);
 			}
+			state.evolveInertia();
 			if (sleep > 0) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
 			}
@@ -169,12 +170,13 @@ void Simul::run() {
 		for (long t = 0 ; t < n_iters_th ; ++t) {
 			state.evolveNoInertia();
 		}
+		state.resetPosIni();
 		// Time evolution
 		for (long t = 0 ; t < n_iters ; ++t) {
-			state.evolveNoInertia();
 			if (t % skip == 0) {
-				obs.compute(&state);
+				obs.compute(&state, t / skip);
 			}
+			state.evolveNoInertia();
 			if (sleep > 0) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
 			}

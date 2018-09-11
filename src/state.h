@@ -51,6 +51,8 @@ class State {
 		~State();
 		void evolveNoInertia(); //!< Do one time step without inertia
 		void evolveInertia(); //!< Do one time step with inertia
+		void resetPosIni(); //!< Reset the initial positions
+		void getDisplacements(double &X1, double &X2) const;
 
 		//! Get the positions 
 		const std::vector<double> & getPos() const {
@@ -71,6 +73,8 @@ class State {
 		gsl_rng *rng;
 
 		std::vector<double> positions; //!< Positions of the particles
+		std::vector<double> positions_ini; //!< Initial positions
+		std::vector<double> offsets; //!< Number of turns around the box
 		std::vector<double> velocities; //!< Velocities of the particles
 		std::vector<double> charges; //!< Charges of the particles
 		Ewald *ew; //!< To perform Ewald summation

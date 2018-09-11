@@ -35,24 +35,31 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
  * Initialize the vector for correlations.
  */
 Observables::Observables(const long n_parts_, const long n_parts_1_,
-			             const long n_div_x_, const int D_) :
+			             const long n_div_x_, const long n_pts_, const int D_) :
 		D(D_), n_parts(n_parts_), n_parts_1(n_parts_1_), n_div_x(n_div_x_),
 		n_div_r((D == 3)
 				? (long) std::ceil(std::sqrt(0.5) * n_div_x)
 				: (n_div_x_ + 1) / 2),
-		n_div_tot(n_div_x * n_div_r)
+		n_div_tot(n_div_x * n_div_r), n_pts(n_pts_)
 {
+	displ1.assign(n_pts, 0.0);
+	displ2.assign(n_pts, 0.0);
+	correls12.assign(n_div_tot, 0);
 	correls11.assign(n_div_tot, 0);
 	correls22.assign(n_div_tot, 0);
 	correls12.assign(n_div_tot, 0);
 }
 
 /*
- * \brief Compute the observables for a given state
+ * \brief Compute the observables for a given state at 
  */
-void Observables::compute(const State *state) {
-	const std::vector<double> & pos = state->getPos();
+void Observables::compute(const State *state, const long t) {
+	double X1, X2;
+	state->getDisplacements(X1, X2);
+	displ1[t] = X1;
+	displ2[t] = X2;
 
+	const std::vector<double> & pos = state->getPos();
 	// For each pair of particles
 	for (long i = 0 ; i < n_parts_1 ; ++i) {
 		for (long j = i + 1 ; j < n_parts_1 ; ++j) {
@@ -145,7 +152,29 @@ void Observables::writeH5(const std::string fname, double charge1,
 		H5::Attribute a_inertia = file.createAttribute(
 				"inertia", H5::PredType::NATIVE_INT, default_ds);
 		a_inertia.write(H5::PredType::NATIVE_INT, &inertia);
+
+		/* DISPLACEMENTS */
+		std::vector<double> data_displ(3 * n_pts);
+		for (long i = 0 ; i < n_pts ; ++i) {
+			data_displ[3*i] = i * skip * dt;
+			data_displ[3*i+1] = displ1[i];
+			data_displ[3*i+2] = displ2[i];
+		}
+
+		H5::DataSet datasetDispl;
+		H5::DSetCreatPropList plistDispl;
+		plistDispl.setDeflate(6);
+		hsize_t dimsDispl[2] = {(hsize_t) n_pts, 3};
+		H5::DataSpace dataspaceDispl(2, dimsDispl);
+		hsize_t chunk_displ[2] = {(hsize_t) std::min(1024l, n_pts), 1};
+		plistDispl.setChunk(2, chunk_displ);
+
+		datasetDispl = file.createDataSet("displacements",
+				     					  H5::PredType::NATIVE_DOUBLE,
+									      dataspaceDispl, plistDispl);
+		datasetDispl.write(data_displ.data(), H5::PredType::NATIVE_DOUBLE);
 		
+		/* CORRELATIONS */
 		// We chunk the data and compress it
 		// Chunking should depend on how we intend to read the data
 		H5::DataSet dataset11, dataset22, dataset12;
@@ -162,7 +191,7 @@ void Observables::writeH5(const std::string fname, double charge1,
 		/*hsize_t dims[3] = {(hsize_t) n_div_x, (hsize_t) n_div_x,
 			               (hsize_t) n_div_x};
 		H5::DataSpace dataspace(3, dims);*/
-		hsize_t dims[3] = {(hsize_t) n_div_x, (hsize_t) n_div_r};
+		hsize_t dims[2] = {(hsize_t) n_div_x, (hsize_t) n_div_r};
 		H5::DataSpace dataspace(2, dims);
 
 		// Write datasets for correlations

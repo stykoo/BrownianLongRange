@@ -34,9 +34,9 @@ along with BrownianLongRange.  If not, see <http://www.gnu.org/licenses/>.
 class Observables {
 	public:
 		Observables(const long n_parts_, const long n_parts_1_,
-				    const long n_div_x_, const int D_);
+				    const long n_div_x_, const long n_pts_, const int D_);
 		//! Compute the observables for a given state
-		void compute(const State *state);
+		void compute(const State *state, const long t);
 		//! Export to hdf5
 		void writeH5(const std::string fname, double charge1, double charge2,
 	                 double pot_strength, double temperature, double field,
@@ -53,7 +53,10 @@ class Observables {
 		const long n_div_x; //!< Number of divisions in x
 		const long n_div_r; //!< Number of divisions for radial coordinate
 		const long n_div_tot; //!< Total number of divisions
+		const long n_pts; //!< Number of points in time
 
+		std::vector<double> displ1; //!< Displacement of particles 1
+		std::vector<double> displ2; //!< Displacement of particles 1
 		std::vector<long long> correls11; //!< Correlations
 		std::vector<long long> correls22; //!< Correlations
 		std::vector<long long> correls12; //!< Correlations

@@ -51,10 +51,13 @@ State::State(const long _n_parts, const long _n_parts_1,
 	gsl_rng_set(rng, sd);
 
 	positions.resize(D * n_parts);
+	positions_ini.resize(D * n_parts);
+	offsets.resize(D * n_parts);
 
 	for (long i = 0 ; i < D * n_parts ; ++i) {
 		positions[i] = gsl_ran_flat(rng, 0.0, 1.0);
 	}
+	resetPosIni();
 
 	velocities.assign(D * n_parts, 0.0);
 
@@ -104,7 +107,9 @@ void State::evolveNoInertia() {
 		positions[i] += dt * pot_strength * forces[i];
 		positions[i] += gsl_ran_gaussian_ziggurat(rng, sigma);
 		// Enforce PBC
-		positions[i] -= std::floor(positions[i]);
+		double o = std::floor(positions[i]);
+		positions[i] -= o;
+		offsets[i] += o;
 	}
 }
 
@@ -138,7 +143,10 @@ void State::evolveInertia() {
 		positions[i] += c_rv * velocities[i];
 		positions[i] += c_rf * pot_strength * forces[i];
 		positions[i] += c_rn * u;
-		positions[i] -= std::floor(positions[i]); // PBC
+		// Enforce PBC
+		double o = std::floor(positions[i]);
+		positions[i] -= o;
+		offsets[i] += o;
 
 		// Update velocities (old internal forces)
 		velocities[i] *= a;
@@ -158,4 +166,27 @@ void State::evolveInertia() {
 		// Update velocities (new internal forces)
 		velocities[i] += c_vf * pot_strength * forces[i];
 	}
+}
+
+//! Reset the initial positions
+void State::resetPosIni() {
+	for (long i = 0 ; i < D * n_parts ; ++i) {
+		positions_ini[i] = positions[i];
+		offsets[i] = 0.0;
+	}
+}
+
+//! Get the average displacement of particles 1 (resp. 2) along 1st axis
+void State::getDisplacements(double &X1, double &X2) const {
+	X1 = 0.0;
+	for (long i = 0 ; i < n_parts_1 ; ++i) {
+		X1 += (positions[i] - positions_ini[i] + offsets[i]);
+	}
+	X1 /= n_parts_1;
+
+	X2 = 0.0;
+	for (long i = n_parts_1 ; i < n_parts ; ++i) {
+		X2 += (positions[i] - positions_ini[i] + offsets[i]);
+	}
+	X2 /= (n_parts - n_parts_1);
 }
