@@ -34,7 +34,7 @@ along with BrownianLongRange.  If not, see <http://www.gnu.org/licenses/>.
 class Observables {
 	public:
 		Observables(const long n_parts_, const long n_parts_1_,
-				    const long n_div_x_);
+				    const long n_div_x_, const int D_);
 		//! Compute the observables for a given state
 		void compute(const State *state);
 		//! Export to hdf5
@@ -47,6 +47,7 @@ class Observables {
 		size_t boxOfPair(const long i, const long j,
 				         const std::vector<double> & pos);
 
+		const int D; //!< Dimension (2 or 3)
 		const long n_parts; //!< Number of particles 
 		const long n_parts_1; //!< Number of particles of species 1
 		const long n_div_x; //!< Number of divisions in x

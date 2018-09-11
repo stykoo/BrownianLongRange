@@ -140,7 +140,7 @@ void Simul::run() {
 	// Initialize the state of the system
 	State state(n_parts, n_parts_1, charge1, charge2, pot_strength,
 	            temperature, field, dt, mass, bias, D);
-	Observables obs(n_parts, n_parts_1, n_div_x);
+	Observables obs(n_parts, n_parts_1, n_div_x, D);
 
 	Visu *visu = NULL;
 	std::thread *thVisu = NULL;

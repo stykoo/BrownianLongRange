@@ -35,16 +35,12 @@ along with ActiveBrownian.  If not, see <http://www.gnu.org/licenses/>.
  * Initialize the vector for correlations.
  */
 Observables::Observables(const long n_parts_, const long n_parts_1_,
-			             const long n_div_x_) :
-		n_parts(n_parts_), n_parts_1(n_parts_1_),
-		n_div_x(n_div_x_),
-#ifdef RESTRICT_2D
-		n_div_r((n_div_x_ + 1) / 2),
-#else
-		n_div_r((long) std::ceil(std::sqrt(0.5) * n_div_x)),
-#endif
+			             const long n_div_x_, const int D_) :
+		D(D_), n_parts(n_parts_), n_parts_1(n_parts_1_), n_div_x(n_div_x_),
+		n_div_r((D == 3)
+				? (long) std::ceil(std::sqrt(0.5) * n_div_x)
+				: (n_div_x_ + 1) / 2),
 		n_div_tot(n_div_x * n_div_r)
-		//n_div_tot(n_div_x * n_div_x * n_div_x)
 {
 	correls11.assign(n_div_tot, 0);
 	correls22.assign(n_div_tot, 0);
@@ -76,28 +72,25 @@ void Observables::compute(const State *state) {
 
 size_t Observables::boxOfPair(const long i, const long j,
 		                      const std::vector<double> & pos) {
-#ifdef RESTRICT_2D
-	double dr[2];
-	for (int a = 0 ; a < 2 ; ++a) {
-		dr[a] = pos[a * n_parts + j] - pos[a * n_parts + i];
-		dr[a] -= std::round(dr[a]);
+	size_t bx = 0, br = 0;
+	if (D == 2) {
+		double dr[2];
+		for (int a = 0 ; a < 2 ; ++a) {
+			dr[a] = pos[a * n_parts + j] - pos[a * n_parts + i];
+			dr[a] -= std::round(dr[a]);
+		}
+		bx = (size_t) (n_div_x * (dr[0] + 0.5));
+		br = (size_t) (n_div_x * std::abs(dr[1]));
+	} else if (D == 3) {
+		double dr[3];
+		for (int a = 0 ; a < 3 ; ++a) {
+			dr[a] = pos[a * n_parts + j] - pos[a * n_parts + i];
+			dr[a] -= std::round(dr[a]);
+		}
+		bx = (size_t) (n_div_x * (dr[0] + 0.5));
+		br = (size_t) (n_div_x * std::sqrt(dr[1]*dr[1] + dr[2]*dr[2]));
 	}
-	size_t bx = (size_t) (n_div_x * (dr[0] + 0.5));
-	size_t br = (size_t) (n_div_x * std::abs(dr[1]));
-#else
-	//size_t b[3];
-	double dr[3];
-	for (int a = 0 ; a < 3 ; ++a) {
-		dr[a] = pos[a * n_parts + j] - pos[a * n_parts + i];
-		dr[a] -= std::round(dr[a]);
-		//dr[a] -= std::floor(dr[a]);
-		//b[a] = (size_t) (dr[a] * n_div_x);
-	}
-	size_t bx = (size_t) (n_div_x * (dr[0] + 0.5));
-	size_t br = (size_t) (n_div_x * std::sqrt(dr[1]*dr[1] + dr[2]*dr[2]));
-#endif
 	return bx * n_div_r + br;
-	//return b[0] * n_div_x * n_div_x + b[1] * n_div_x + b[2];	
 }
 
 /*
