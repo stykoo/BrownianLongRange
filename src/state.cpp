@@ -67,11 +67,16 @@ State::State(const long _n_parts, const long _n_parts_1,
 	}
 
 	Dim DD = (D == 3) ? DIM3 : DIM2;
-	ew = new Ewald(n_parts, positions.data(), _bias, charges.data(), DD);
+
+#ifdef USE_MKL
+	ew = new Ewald(DD, n_parts, positions.data(), charges.data(), _bias);
+#else
+	ew = new Ewald(DD, n_parts, positions.data(), charges.data(), _bias, 1);
+#endif
 
 	// Initialize the forces (needed for inertial dynamics)
 	double pot;
-	ew->fullforce(&pot);
+	ew->update(pot);
 }
 
 State::~State() {
@@ -88,7 +93,7 @@ State::~State() {
 void State::evolveNoInertia() {
 	// Compute internal forces
 	double pot;
-	double *forces = ew->fullforce(&pot);
+	double *forces = ew->update(pot);
 
 	for (long i = 0 ; i < n_parts ; ++i) {
 		// External forces
@@ -120,7 +125,7 @@ void State::evolveInertia() {
 	double c_vf = dt / (2.0 * mass);
 	double c_vn = b / mass;
 
-	double *forces = ew->getForce();
+	double *forces = ew->getForces();
 
 	for (long i = 0 ; i < n_parts ; ++i) {
 		// External forces
@@ -147,7 +152,7 @@ void State::evolveInertia() {
 
 	// New forces
 	double pot;
-	forces = ew->fullforce(&pot);
+	forces = ew->update(pot);
 
 	for (long i = 0 ; i < D * n_parts ; ++i) {
 		// Update velocities (new internal forces)
