@@ -139,6 +139,7 @@ EwaldRS::EwaldRS(const Dim D_, const int N_, double *p_, const double *Q_,
 	}
 	//std::cout << "Real space images: " << n_images_tot << std::endl;
 
+#ifdef USE_MKL
 	if (use_mkl > 0) {
 		int nn = 1;
 		if (use_mkl == 1) {
@@ -154,15 +155,18 @@ EwaldRS::EwaldRS(const Dim D_, const int N_, double *p_, const double *Q_,
 		rrs = new double[D * nn];
 		in_range = new bool[S];
 	}
+#endif
 }
 
 EwaldRS::~EwaldRS() {
 	delete [] forces;
+#ifdef USE_MKL
 	if (use_mkl > 0) {
 		delete [] norms2; delete [] norms;
 		delete [] efs; delete [] cms; delete [] rrs;
 		delete [] in_range;
 	}
+#endif
 }
 
 void EwaldRS::update() {
@@ -178,13 +182,16 @@ void EwaldRS::update() {
 				updateAux(i, j);
 			}
 		}
-	} else if (use_mkl == 1) {
+	}
+#ifdef USE_MKL
+	else if (use_mkl == 1) {
 		for(int i = 0 ; i < N ; i++) {
 			updateAuxMKL1(i);
 		}
 	} else if (use_mkl == 2) {
 		updateAuxMKL2();
 	}
+#endif
 }
 
 void EwaldRS::updateAux(const int ii, const int jj) {
@@ -551,7 +558,6 @@ EwaldFS::~EwaldFS() {
 	delete [] sx; delete [] sy; delete [] sz;
 	delete [] cx; delete [] cy; delete [] cz;
 }
-
 
 void EwaldFS::update() {
 	for(int i = 0 ; i < D*N ; i++) {
