@@ -219,6 +219,6 @@ void Observables::writeH5(const std::string fname, double charge1,
 				"n_div_x", H5::PredType::NATIVE_LONG, default_ds);
 		a_n_div_x12.write(H5::PredType::NATIVE_LONG, &n_div_x);
 	} catch (H5::Exception& err) {
-        err.printError();
+        err.printErrorStack();
 	}
 }
