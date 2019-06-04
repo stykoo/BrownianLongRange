@@ -57,6 +57,8 @@ class Observables {
 
 		std::vector<double> displ1; //!< Displacement of particles 1
 		std::vector<double> displ2; //!< Displacement of particles 1
+		std::vector<double> intForces1; //!< Internal forces applied on particles 1
+		std::vector<double> intForces2; //!< Internal forces applied on particles 2
 		std::vector<long long> correls11; //!< Correlations
 		std::vector<long long> correls22; //!< Correlations
 		std::vector<long long> correls12; //!< Correlations
