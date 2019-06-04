@@ -44,6 +44,8 @@ Observables::Observables(const long n_parts_, const long n_parts_1_,
 {
 	displ1.assign(n_pts, 0.0);
 	displ2.assign(n_pts, 0.0);
+	intForces1.assign(n_pts, 0.0);
+	intForces2.assign(n_pts, 0.0);
 	correls12.assign(n_div_tot, 0);
 	correls11.assign(n_div_tot, 0);
 	correls22.assign(n_div_tot, 0);
@@ -58,7 +60,12 @@ void Observables::compute(const State *state, const long t) {
 	state->getDisplacements(X1, X2);
 	displ1[t] = X1;
 	displ2[t] = X2;
-
+	
+	double F1, F2;
+	state->getInternalForces(F1, F2);
+	intForces1[t] = F1;
+	intForces2[t] = F2;
+	
 	const std::vector<double> & pos = state->getPos();
 	// For each pair of particles
 	for (long i = 0 ; i < n_parts_1 ; ++i) {
@@ -173,6 +180,28 @@ void Observables::writeH5(const std::string fname, double charge1,
 				     					  H5::PredType::NATIVE_DOUBLE,
 									      dataspaceDispl, plistDispl);
 		datasetDispl.write(data_displ.data(), H5::PredType::NATIVE_DOUBLE);
+		
+		/* INTERNAL FORCES */
+		std::vector<double> data_intForces(3 * n_pts);
+		for (long i = 0 ; i < n_pts ; ++i) {
+			data_intForces[3*i] = i * skip * dt;
+			data_intForces[3*i+1] = intForces1[i];
+			data_intForces[3*i+2] = intForces2[i];
+		}
+
+		H5::DataSet datasetIntForces;
+		H5::DSetCreatPropList plistIntForces;
+		plistIntForces.setDeflate(6);
+		hsize_t dimsIntForces[2] = {(hsize_t) n_pts, 3};
+		H5::DataSpace dataspaceIntForces(2, dimsIntForces);
+		hsize_t chunk_intForces[2] = {(hsize_t) std::min(1024l, n_pts), 1};
+		plistIntForces.setChunk(2, chunk_intForces);
+
+		datasetIntForces = file.createDataSet("internal_forces",
+				     					  H5::PredType::NATIVE_DOUBLE,
+									      dataspaceIntForces, plistIntForces);
+		datasetIntForces.write(data_intForces.data(), H5::PredType::NATIVE_DOUBLE);
+		
 		
 		/* CORRELATIONS */
 		// We chunk the data and compress it

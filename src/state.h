@@ -53,6 +53,7 @@ class State {
 		void evolveInertia(); //!< Do one time step with inertia
 		void resetPosIni(); //!< Reset the initial positions
 		void getDisplacements(double &X1, double &X2) const;
+		void getInternalForces(double &F1, double &F2) const;
 
 		//! Get the positions 
 		const std::vector<double> & getPos() const {
