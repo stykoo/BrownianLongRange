@@ -190,3 +190,21 @@ void State::getDisplacements(double &X1, double &X2) const {
 	}
 	X2 /= (n_parts - n_parts_1);
 }
+
+//! Get the average internal force (ie not the electric field) applied on particles 1 (resp. 2) along 1st axis
+void State::getInternalForces(double &F1, double &F2) const {
+	double *forces = ew->getForces();
+	
+	F1 = 0.0;
+	for (long i = 0 ; i < n_parts_1 ; ++i) {
+		F1 += (pot_strength * forces[i]);
+	}
+	F1 /= n_parts_1;
+	
+	F2 = 0.0;
+	for (long i = n_parts_1 ; i < n_parts ; ++i) {
+		F2 += (pot_strength * forces[i]);
+	}
+	F2 /= (n_parts - n_parts_1);
+}
+
