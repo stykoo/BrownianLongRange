@@ -57,7 +57,9 @@ class Simul {
 		long n_parts; //!< Number of particles
 		long n_parts_1; //!< Number of particles of species 1
 		double charge1; //!< Charge of species 1
-		double charge2; //!< Charge of species 1
+		double charge2; //!< Charge of species 2
+		double mobility1; //!< Mobility of species 1
+		double mobility2; //!< Mobility of species 2
 		double pot_strength; //!< Strength of interparticle potential
 		double temperature; //!< Temperature
 		double field; //!< External electric field along 1st axis
@@ -65,9 +67,10 @@ class Simul {
 		long n_iters; //!< Number of time iterations
 		long n_iters_th; //!< Number of time iterations of thermalization
 		bool inertia; //!< With or without inertia
-		double mass; //!< Mass of the particles if inertial dynamics
+		double mass1; //!< Mass of species 1 if inertial dynamics
+		double mass2; //!< Mass of species 2 if inertial dynamics
 		double bias; //!< Bias toward Fourier space
-		bool restrict_2d; //!< Restrict the system to 2 dimensions
+		bool restrict_2d; //!< Restrict the system to 2 dimensions (still 3D interactions)
 		long skip; //!< Iterations between two computation of observables
 		std::string output; //!< Name of the output file
 		long n_div_x; //!< Number of divisions for correlations

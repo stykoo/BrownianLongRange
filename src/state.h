@@ -46,8 +46,9 @@ class State {
 		State(const long _n_parts, const long _n_parts_1,
 		      const double _charge1, const double _charge2,
 		      const double _pot_strength, const double _temperature,
-			  const double _field, const double _dt, const double _mass,
-			  const double _bias, const int _D);
+		      const double _field, const double _dt, const double _mobility1,
+		      const double _mobility2, const double _mass1, const double _mass2,
+		      const double _bias, const int _D);
 		~State();
 		void evolveNoInertia(); //!< Do one time step without inertia
 		void evolveInertia(); //!< Do one time step with inertia
@@ -68,9 +69,7 @@ class State {
 		const double pot_strength; //!< Strength of the interparticle potential
 		const double field; //!< External field
 		const double dt; //!< Timestep
-		double mass; //!< Mass of the particles if inertial dynamics
 
-		double sigma;
 		gsl_rng *rng;
 
 		std::vector<double> positions; //!< Positions of the particles
@@ -78,6 +77,10 @@ class State {
 		std::vector<double> offsets; //!< Number of turns around the box
 		std::vector<double> velocities; //!< Velocities of the particles
 		std::vector<double> charges; //!< Charges of the particles
+		std::vector<double> mobilities; //!< Mobilities of the particles
+		std::vector<double> masses; //!< Masses of the particles
+		std::vector<double> sigma; //!< Standard deviation of the Gaussian white noise of the particles
+		
 		Ewald *ew; //!< To perform Ewald summation
 };
 

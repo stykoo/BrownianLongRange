@@ -39,9 +39,10 @@ class Observables {
 		void compute(const State *state, const long t);
 		//! Export to hdf5
 		void writeH5(const std::string fname, double charge1, double charge2,
-	                 double pot_strength, double temperature, double field,
-					 double dt, long n_iters, long n_iters_th, double bias,
-					 long skip, int inertia) const;
+				double mobility1, double mobility2, double pot_strength,
+				double temperature, double field, double dt, long n_iters,
+				long n_iters_th, double bias, long skip, int inertia,
+				double mass1, double mass2) const;
 
 	private:
 		size_t boxOfPair(const long i, const long j,

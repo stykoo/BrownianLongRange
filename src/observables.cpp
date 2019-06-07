@@ -110,11 +110,11 @@ size_t Observables::boxOfPair(const long i, const long j,
 /*
  * \brief Export the observables to a hdf5 file
  */
-void Observables::writeH5(const std::string fname, double charge1,
-		                  double charge2, double pot_strength,
-						  double temperature, double field, double dt,
-						  long n_iters, long n_iters_th, double bias, long skip,
-						  int inertia) const {
+void Observables::writeH5(const std::string fname, double charge1, double charge2,
+				double mobility1, double mobility2, double pot_strength,
+				double temperature, double field, double dt, long n_iters,
+				long n_iters_th, double bias, long skip, int inertia,
+				double mass1, double mass2) const {
 	try {
 		H5::H5File file(fname, H5F_ACC_TRUNC);
 
@@ -132,6 +132,12 @@ void Observables::writeH5(const std::string fname, double charge1,
 		H5::Attribute a_charge2 = file.createAttribute(
 				"charge2", H5::PredType::NATIVE_DOUBLE, default_ds);
 		a_charge2.write(H5::PredType::NATIVE_DOUBLE, &charge2);
+		H5::Attribute a_mobility1 = file.createAttribute(
+				"mobility1", H5::PredType::NATIVE_DOUBLE, default_ds);
+		a_mobility1.write(H5::PredType::NATIVE_DOUBLE, &mobility1);
+		H5::Attribute a_mobility2 = file.createAttribute(
+				"mobility2", H5::PredType::NATIVE_DOUBLE, default_ds);
+		a_mobility2.write(H5::PredType::NATIVE_DOUBLE, &mobility2);
 		H5::Attribute a_pot_strength = file.createAttribute(
 				"pot_strength", H5::PredType::NATIVE_DOUBLE, default_ds);
 		a_pot_strength.write(H5::PredType::NATIVE_DOUBLE, &pot_strength);
@@ -159,13 +165,22 @@ void Observables::writeH5(const std::string fname, double charge1,
 		H5::Attribute a_inertia = file.createAttribute(
 				"inertia", H5::PredType::NATIVE_INT, default_ds);
 		a_inertia.write(H5::PredType::NATIVE_INT, &inertia);
+		H5::Attribute a_mass1 = file.createAttribute(
+				"mass1", H5::PredType::NATIVE_DOUBLE, default_ds);
+		a_mass1.write(H5::PredType::NATIVE_DOUBLE, &mass1);
+		H5::Attribute a_mass2 = file.createAttribute(
+				"mass2", H5::PredType::NATIVE_DOUBLE, default_ds);
+		a_mass2.write(H5::PredType::NATIVE_DOUBLE, &mass2);
+		H5::Attribute a_dimension = file.createAttribute(
+				"dimension", H5::PredType::NATIVE_INT, default_ds);
+		a_dimension.write(H5::PredType::NATIVE_INT, &D);
 
 		/* DISPLACEMENTS */
 		std::vector<double> data_displ(3 * n_pts);
 		for (long i = 0 ; i < n_pts ; ++i) {
-			data_displ[3*i] = i * skip * dt;
-			data_displ[3*i+1] = displ1[i];
-			data_displ[3*i+2] = displ2[i];
+			data_displ[3 * i] = i * skip * dt;
+			data_displ[3 * i + 1] = displ1[i];
+			data_displ[3 * i + 2] = displ2[i];
 		}
 
 		H5::DataSet datasetDispl;
@@ -177,16 +192,15 @@ void Observables::writeH5(const std::string fname, double charge1,
 		plistDispl.setChunk(2, chunk_displ);
 
 		datasetDispl = file.createDataSet("displacements",
-				     					  H5::PredType::NATIVE_DOUBLE,
-									      dataspaceDispl, plistDispl);
+				H5::PredType::NATIVE_DOUBLE, dataspaceDispl, plistDispl);
 		datasetDispl.write(data_displ.data(), H5::PredType::NATIVE_DOUBLE);
 		
 		/* INTERNAL FORCES */
 		std::vector<double> data_intForces(3 * n_pts);
 		for (long i = 0 ; i < n_pts ; ++i) {
-			data_intForces[3*i] = i * skip * dt;
-			data_intForces[3*i+1] = intForces1[i];
-			data_intForces[3*i+2] = intForces2[i];
+			data_intForces[3 * i] = i * skip * dt;
+			data_intForces[3 * i + 1] = intForces1[i];
+			data_intForces[3 * i + 2] = intForces2[i];
 		}
 
 		H5::DataSet datasetIntForces;
@@ -198,10 +212,8 @@ void Observables::writeH5(const std::string fname, double charge1,
 		plistIntForces.setChunk(2, chunk_intForces);
 
 		datasetIntForces = file.createDataSet("internal_forces",
-				     					  H5::PredType::NATIVE_DOUBLE,
-									      dataspaceIntForces, plistIntForces);
+				H5::PredType::NATIVE_DOUBLE, dataspaceIntForces, plistIntForces);
 		datasetIntForces.write(data_intForces.data(), H5::PredType::NATIVE_DOUBLE);
-		
 		
 		/* CORRELATIONS */
 		// We chunk the data and compress it
