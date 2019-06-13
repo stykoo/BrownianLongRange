@@ -123,7 +123,7 @@ Simul::Simul(int argc, char **argv) {
 		|| notPositive(mobility1, "mobility1") || notPositive(mobility2, "mobility2")
 		|| notPositive(mass1, "mass1") || notPositive(mass2, "mass2")
 		|| notStrPositive(bias, "bias")
-		|| notStrPositive(n_div_x, "n_div_x")) {
+		|| notStrPositive(n_div_x, "n_div_x") ||notStrPositive(skip, "skip")) {
 		status = SIMUL_INIT_FAILED;
 		return;
 	}
