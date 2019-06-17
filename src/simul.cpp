@@ -50,9 +50,9 @@ Simul::Simul(int argc, char **argv) {
 
 	po::options_description opts("Options");
 	opts.add_options()
-		("parts,n", po::value<long>(&n_parts)->required(),
+		("parts,N", po::value<long>(&n_parts)->required(),
 		 "Number of particles")
-		("parts1,m", po::value<long>(&n_parts_1)->required(),
+		("parts1,n", po::value<long>(&n_parts_1)->required(),
 		 "Number of particles of species 1")
 		("q1", po::value<double>(&charge1)->required(),
 		 "Charge of particles of species 1")
@@ -69,8 +69,14 @@ Simul::Simul(int argc, char **argv) {
 		("itersTh,J", po::value<long>(&n_iters_th)->default_value(0),
 		 "Number of time iterations of thermalization")
 		("inertia,i", po::bool_switch(&inertia), "Simulation with inertia")
-		("mass,M", po::value<double>(&mass)->default_value(0.0),
-		 "Mass of the particles")
+		("k1", po::value<double>(&mobility1)->default_value(1.0),
+		 "Mobility of particles of species 1")
+		("k2", po::value<double>(&mobility2)->default_value(1.0),
+		 "Mobility of particles of species 2")
+		("M1", po::value<double>(&mass1)->default_value(0.0),
+		 "Mass of particles of species 1")
+		("M2", po::value<double>(&mass2)->default_value(0.0),
+		 "Mass of particles of species 2")
 		("bias", po::value<double>(&bias)->default_value(1.0),
 		 "Bias toward Fourier space")
 		("2d", po::bool_switch(&restrict_2d),
@@ -114,8 +120,10 @@ Simul::Simul(int argc, char **argv) {
 		|| notPositive(pot_strength, "eps") || notPositive(temperature, "T")
 		|| notStrPositive(dt, "dt") || notPositive(n_iters, "n_iters")
 		|| notPositive(n_iters_th, "n_iters_th")
-		|| notPositive(mass, "mass") || notStrPositive(bias, "bias")
-		|| notStrPositive(n_div_x, "n_div_x")) {
+		|| notPositive(mobility1, "mobility1") || notPositive(mobility2, "mobility2")
+		|| notPositive(mass1, "mass1") || notPositive(mass2, "mass2")
+		|| notStrPositive(bias, "bias")
+		|| notStrPositive(n_div_x, "n_div_x") ||notStrPositive(skip, "skip")) {
 		status = SIMUL_INIT_FAILED;
 		return;
 	}
@@ -139,7 +147,8 @@ void Simul::run() {
 
 	// Initialize the state of the system
 	State state(n_parts, n_parts_1, charge1, charge2, pot_strength,
-	            temperature, field, dt, mass, bias, D);
+	            temperature, field, dt, mobility1, mobility2,
+		    mass1, mass2, bias, D);
 	Observables obs(n_parts, n_parts_1, n_div_x, n_iters / skip, D);
 
 	Visu *visu = NULL;
@@ -183,8 +192,8 @@ void Simul::run() {
 		}
 	}
 
-	obs.writeH5(output, charge1, charge2, pot_strength, temperature,
-				field, dt, n_iters, n_iters_th, bias, skip, (int) inertia);
+	obs.writeH5(output, charge1, charge2, mobility1, mobility2, pot_strength, temperature,
+			field, dt, n_iters, n_iters_th, bias, skip, (int) inertia, mass1, mass2);
 
 	if (restrict_2d && show) {
 		thVisu->join();
@@ -198,27 +207,26 @@ void Simul::run() {
  */
 void Simul::print() const {
 	if (inertia) {
-		std::cout << "# [WithInertia,";
+		std::cout << "# [WithInertia, ";
 	} else {
-		std::cout << "# [WithoutInertia,";
+		std::cout << "# [WithoutInertia, ";
 	}
 	if (restrict_2d) {
-		std::cout << "2d,";
+		std::cout << "2d, ";
 	} else {
-		std::cout << "3d,";
+		std::cout << "3d, ";
 	}
 #ifdef USE_MKL
 	std::cout << "MKL] ";
 #else
 	std::cout << "NOMKL] ";
 #endif
-	std::cout << "n_parts=" << n_parts
-	          << ", n_parts_1=" << n_parts_1 << ", charge1="
-			  << charge1 << ", charge2=" << charge2
-	          << ", pot_strength=" << pot_strength << ", temperature="
-			  << temperature << ", field=" << field << ", dt=" << dt
-			  << ", n_iters=" << n_iters << ", n_iters_th=" << n_iters_th
-			  << ", mass=" << mass << ", bias=" << bias << ", skip="
-			  << skip << "\n";
+	std::cout << "n_parts=" << n_parts << ", n_parts_1=" << n_parts_1 << ", charge1="
+		  << charge1 << ", charge2=" << charge2 << ", mobility1=" << mobility1
+		  << ", mobility2=" << mobility2 << ", pot_strength=" << pot_strength
+		  << ", temperature=" << temperature << ", field=" << field
+		  << ", dt=" << dt << ", n_iters=" << n_iters << ", n_iters_th="
+		  << n_iters_th << ", mass1=" << mass1 << ", mass2=" << mass2
+		  << ", bias=" << bias << ", skip=" << skip << "\n";
 	std::cout << std::endl;
 }
